@@ -8,10 +8,15 @@ Color tools for developers — converters, palettes, accessibility checkers, and
 - **Styling:** Tailwind CSS v4 (CSS-first, no config file)
 - **Dark mode:** Class-based (`.dark`), localStorage toggle, inline script to prevent flash
 - **Hosting:** Static export via `output: 'export'` → `./out/`
+- **Nav config:** `config/navigation.json` — edit navbar menu items without touching TypeScript
 
 ## Project Structure
 
 ```
+config/
+├── navigation.json        # Editable nav menu (add/reorder/remove items)
+scripts/
+├── generate-tool-pages.js  # Script to regenerate tool page boilerplate
 src/
 ├── app/
 │   ├── globals.css          # Tailwind v4 + custom properties + dark mode
@@ -24,6 +29,8 @@ src/
 │   ├── terms/page.tsx
 │   ├── cookies/page.tsx
 │   ├── disclaimer/page.tsx
+│   ├── blog/                # Blog listing + [slug]/page.tsx (12 posts)
+│   ├── learn/               # Learn listing + [slug]/page.tsx (10 articles)
 │   └── {tool-slug}/         # Tool pages (page.tsx + ToolPageClient.tsx)
 ├── components/
 │   ├── home/
@@ -41,9 +48,13 @@ src/
 │       ├── Button.tsx       # Reusable button (primary/secondary/ghost/danger)
 │       └── Toast.tsx        # Toast notification context + provider
 ├── lib/
-│   └── navigation.ts        # navItems (navbar) + tools[] (grid + sitemap data)
+│   ├── navigation.ts        # navItems from config/navigation.json + tools[] (grid data)
+│   ├── converters.ts        # 55+ color conversion functions (HEX, RGB, HSL, CMYK, LAB, LCH, OKLab, OKLCH, HWB…)
+│   ├── blog/posts.ts        # 12 blog posts (BlogPost[])
+│   ├── learn/posts.ts       # 10 learn articles (BlogPost[])
+│   └── site.ts              # SITE_URL constant
 └── types/
-    └── index.ts             # Tool, ToolCategory, NavItem, FAQItem, Toast
+    └── index.ts             # Tool, ToolCategory, NavItem, BlogPost, FAQItem, Toast
 ```
 
 ## Layout Architecture
@@ -55,7 +66,7 @@ src/
 ## Color Scheme
 
 - Primary brand: rose-500 (`#f43f5e`)
-- Category badges: converter=blue, palette=purple, accessibility=emerald, picker=amber, utility=cyan
+- Category badges: converter=blue, palette=purple, gradient=pink, accessibility=emerald, picker=amber, image=orange, adjustment=teal, reference=indigo, utility=cyan
 - CSS custom properties in `globals.css`: `--bg`, `--text`, `--border`, `--primary`, etc.
 
 ## Tool Page Pattern
@@ -102,9 +113,10 @@ npm run build    # Static export → ./out/
 - ✅ Homepage (hero, search, category cards, tool grid)
 - ✅ Tool page components (InputPanel, OutputPanel, ToolLayout)
 - ✅ Boilerplate pages (about, contact, privacy, terms, cookies, disclaimer)
-- ✅ Sitemap
+- ✅ Blog (12 posts) + Learn (10 articles)
+- ✅ Sitemap (includes tools, blog, learn)
 - ✅ Cloudflare Pages headers
-- ✅ Build passing (10 static pages)
-- ⬜ Color converter library (lib/converters.ts — needs implementation)
-- ⬜ Tool pages (33 tool page directories need page.tsx + ToolPageClient.tsx)
+- ✅ Color converter library (55+ functions)
+- ✅ 300 tool pages (page.tsx + ToolPageClient.tsx)
+- ✅ Editable nav config (config/navigation.json)
 - ⬜ Favicon / OG images / public assets
