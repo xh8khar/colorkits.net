@@ -28,7 +28,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: p.priority,
     })),
     ...tools.map(t => ({
-      url: `${BASE_URL}${t.slug}`,
+      url: `${BASE_URL}${t.slug}/`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.8,

@@ -1,6 +1,5 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Footer from '@/components/layout/Footer'
 import LayoutShell from '@/components/layout/LayoutShell'
 import { ToastProvider } from '@/components/ui/Toast'
 
