@@ -6,6 +6,6 @@ const example = '#ff0044'
 
 export default function ToolPageClient() {
   return (
-    <ColorConverterTool title="Batch Color Converter" description="Batch Color Converter. Free online color converter tool for developers." convertFn={cssColorConverter} exampleInput={example} />
+    <ColorConverterTool title="Batch Color Converter" description="Batch Color Converter. Free online color converter tool for developers." convertFn={cssColorConverter} exampleInput={example} mode="batch" />
   )
 }

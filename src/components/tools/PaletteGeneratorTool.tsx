@@ -237,6 +237,7 @@ const typeLabels: Record<string, { name: string; description: string }> = {
   ai: { name: 'AI Palette', description: 'An intelligently balanced palette with harmonious color relationships.' },
   brand: { name: 'Brand Palette', description: 'A professional brand identity palette with primary and accent colors.' },
   vintage: { name: 'Vintage', description: 'Warm, nostalgic tones that evoke a sense of history and craftsmanship.' },
+  retro: { name: 'Retro', description: 'Classic throwback colors inspired by mid-century design and pop culture.' },
   nature: { name: 'Nature', description: 'Earthy greens and browns inspired by the natural world.' },
   ocean: { name: 'Ocean', description: 'Cool blues and teals that capture the depths of the sea.' },
   sunset: { name: 'Sunset', description: 'Warm oranges, pinks, and purples reminiscent of a setting sun.' },

@@ -6,6 +6,6 @@ const example = '#ff0044'
 
 export default function ToolPageClient() {
   return (
-    <ColorConverterTool title="Color Format Detector" description="Color Format Detector. Free online color converter tool for developers." convertFn={colorFormatDetector} exampleInput={example} />
+    <ColorConverterTool title="Color Format Detector" description="Color Format Detector. Free online color converter tool for developers." exampleInput={example} mode="detect" />
   )
 }

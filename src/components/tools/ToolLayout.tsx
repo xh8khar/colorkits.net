@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
@@ -83,6 +83,22 @@ export default function ToolLayout({
     } finally { setLoading(false) }
   }, [input, isReversed, convertFn, onReverse, addToast])
 
+  const dynamicPreview = useMemo((): string | undefined => {
+    const tryParse = (s: string): string | null => {
+      const t = s.trim()
+      if (/^#[0-9a-fA-F]{3,8}$/.test(t)) return t
+      const rgb = t.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+      if (rgb) {
+        const [r, g, b] = [parseInt(rgb[1]), parseInt(rgb[2]), parseInt(rgb[3])]
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+      }
+      return null
+    }
+    if (output) { const c = tryParse(output); if (c) return c }
+    if (input) { const c = tryParse(input); if (c) return c }
+    return colorPreview
+  }, [input, output, colorPreview])
+
   const handleCopy = useCallback(async () => {
     if (!output) return
     try { await navigator.clipboard.writeText(output); addToast('Copied to clipboard', 'success') }
@@ -110,7 +126,7 @@ export default function ToolLayout({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
         <InputPanel label={isReversed && bidirectional ? outputLabel : inputLabel} value={input} onChange={setInput} placeholder={inputPlaceholder} />
-        <OutputPanel label={isReversed && bidirectional ? inputLabel : outputLabel} value={output} placeholder={outputPlaceholder} error={error} colorPreview={colorPreview} />
+        <OutputPanel label={isReversed && bidirectional ? inputLabel : outputLabel} value={output} placeholder={outputPlaceholder} error={error} colorPreview={dynamicPreview} />
       </div>
 
       <div className="flex flex-wrap items-center gap-3 mb-8">
