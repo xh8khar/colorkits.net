@@ -96,7 +96,7 @@ export default function ToolPageClient() {
 
 - Static export to `./out/`
 - `public/_headers` — security & cache headers for Cloudflare Pages
-- Production: `https://www.colorkits.net` (Cloudflare Pages)
+- No custom domain yet → deployed at `https://colorkits.pages.dev`
 - To change URL, update `src/lib/site.ts` (single source of truth for `SITE_URL`)
 
 ## Commands
