@@ -119,9 +119,10 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       )}
 
       <aside
-        className={`fixed top-0 left-0 z-50 h-full w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 ease-in-out ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:hidden`}
+        className={`w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col ${
+          /* Mobile: fixed overlay drawer */
+          isOpen ? 'fixed top-0 left-0 z-50 h-full translate-x-0' : 'fixed top-0 left-0 z-50 h-full -translate-x-full'
+        } md:static md:z-auto md:translate-x-0 md:h-screen md:sticky md:top-0 transition-transform duration-300 ease-in-out`}
       >
         <div className="flex items-center justify-between h-14 px-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <Link href="/" onClick={onClose} className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white">
@@ -134,7 +135,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Link>
           <button
             onClick={onClose}
-            className="md:hidden p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden"
             aria-label="Close sidebar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
