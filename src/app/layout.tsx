@@ -33,16 +33,20 @@ export const metadata: Metadata = {
     title: 'ColorKits — Free Online Color Tools',
     description: 'Free online color tools: converter, palette generator, contrast checker.',
   },
+  icons: {
+    icon: { url: '/favicon.svg', type: 'image/svg+xml' },
+    apple: { url: '/apple-touch-icon.svg', type: 'image/svg+xml' },
+  },
+  manifest: '/site.webmanifest',
+  other: {
+    'theme-color': '#f43f5e',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
-        <link rel="manifest" href="/site.webmanifest" />
-        <meta name="theme-color" content="#f43f5e" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

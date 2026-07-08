@@ -50,8 +50,13 @@ export default function Footer() {
               <span className="w-3 h-3 rounded-full bg-blue-500" />
               <span className="w-3 h-3 rounded-full bg-purple-500" />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-500">
+            <p className="text-xs text-slate-500 dark:text-slate-500 mb-2">
               &copy; {new Date().getFullYear()} ColorKits. MIT License.
+            </p>
+            <p className="text-xs">
+              <a href="https://www.jsonkits.net" target="_blank" rel="noopener noreferrer" className="text-slate-500 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition-colors underline underline-offset-2 decoration-dotted">
+                Also try JSONKits — free JSON tools
+              </a>
             </p>
           </div>
         </div>
