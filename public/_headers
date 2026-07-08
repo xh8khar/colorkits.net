@@ -1,0 +1,23 @@
+# Cloudflare Pages headers
+# https://developers.cloudflare.com/pages/platform/headers/
+
+# Global security headers
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Cache static assets aggressively
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Cache fonts and images
+/*.svg
+  Cache-Control: public, max-age=31536000, immutable
+/*.ico
+  Cache-Control: public, max-age=31536000, immutable
+
+# No cache for HTML pages
+/*
+  Cache-Control: public, max-age=0, must-revalidate
