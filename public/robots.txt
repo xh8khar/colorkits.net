@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://colorkits.pages.dev/sitemap.xml
+Sitemap: https://www.colorkits.net/sitemap.xml

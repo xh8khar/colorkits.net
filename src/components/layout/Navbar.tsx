@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import ThemeToggle from './ThemeToggle'
 
-const SITE_URL = 'https://colorkits.pages.dev'
+const SITE_URL = 'https://www.colorkits.net'
 const SITE_TITLE = 'ColorKits - 300+ Free Online Color Tools for Developers'
 
 const socialLinks = [
