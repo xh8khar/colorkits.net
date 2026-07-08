@@ -33,14 +33,6 @@ export default function Navbar({ onMenuClick }: NavbarProps) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <Link href="/" className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white shrink-0">
-            <span className="text-rose-500">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-            </span>
-            ColorKits
-          </Link>
         </div>
 
         <div className="hidden md:flex items-center gap-1">
