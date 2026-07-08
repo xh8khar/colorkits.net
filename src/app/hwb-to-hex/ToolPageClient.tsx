@@ -1,17 +1,11 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
+import ColorConverterTool from '@/components/tools/ColorConverterTool'
 import { hwbToHex } from '@/lib/converters'
 
 const example = 'hwb(348, 0%, 0%)'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="HWB to HEX"
-      description="HWB to HEX. Free online color tool for developers and designers."
-      onConvert={hwbToHex}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ColorConverterTool title="HWB to HEX" description="HWB to HEX. Free online color converter tool for developers." convertFn={hwbToHex} exampleInput={example} colorPreview="#ff0044" />
   )
 }

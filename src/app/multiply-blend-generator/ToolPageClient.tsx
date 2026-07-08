@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { cssColorConverter } from '@/lib/converters'
-
-const example = '#ff0044'
+import ColorAdjusterTool from '@/components/tools/ColorAdjusterTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Multiply Blend Generator"
-      description="Multiply Blend Generator. Free online color tool for developers and designers."
-      onConvert={cssColorConverter}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ColorAdjusterTool title="Multiply Blend Generator" description="Multiply Blend Generator. Free online color tool for developers and designers." adjustmentType="multiply" />
   )
 }

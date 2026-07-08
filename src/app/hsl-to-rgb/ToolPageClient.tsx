@@ -1,17 +1,11 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
+import ColorConverterTool from '@/components/tools/ColorConverterTool'
 import { hslToRgb } from '@/lib/converters'
 
 const example = 'hsl(348, 100%, 50%)'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="HSL to RGB"
-      description="HSL to RGB. Free online color tool for developers and designers."
-      onConvert={hslToRgb}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ColorConverterTool title="HSL to RGB" description="HSL to RGB. Free online color converter tool for developers." convertFn={hslToRgb} exampleInput={example} colorPreview="#ff0044" />
   )
 }

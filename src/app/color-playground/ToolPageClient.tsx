@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { colorName } from '@/lib/converters'
-
-const example = '#ff0044'
+import UtilityTool from '@/components/tools/UtilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Color Playground"
-      description="Experiment with colors interactively in a free-form color playground."
-      onConvert={colorName}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <UtilityTool title="Color Playground" description="Color Playground. Free online color tool for developers and designers." utilityType="playground" />
   )
 }

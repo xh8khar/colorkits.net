@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { cssColorConverter } from '@/lib/converters'
-
-const example = '#ff0044\n#00ff88'
+import GradientGeneratorTool from '@/components/tools/GradientGeneratorTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Neon Gradient Generator"
-      description="Neon Gradient Generator. Free online color tool for developers and designers."
-      onConvert={cssColorConverter}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <GradientGeneratorTool title="Neon Gradient Generator" description="Neon Gradient Generator. Free online color tool for developers and designers." gradientType="neon" />
   )
 }

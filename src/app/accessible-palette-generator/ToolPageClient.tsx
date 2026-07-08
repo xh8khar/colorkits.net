@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { cssColorConverter } from '@/lib/converters'
-
-const example = '#ff0044'
+import AccessibilityTool from '@/components/tools/AccessibilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Accessible Palette Generator"
-      description="Generate color palettes that meet WCAG accessibility requirements."
-      onConvert={cssColorConverter}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <AccessibilityTool title="Accessible Palette Generator" description="Accessible Palette Generator. Free online color tool for developers and designers." toolType="accessible-palette" />
   )
 }

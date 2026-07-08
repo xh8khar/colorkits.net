@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { cssColorConverter } from '@/lib/converters'
-
-const example = '#ff0044'
+import AccessibilityTool from '@/components/tools/AccessibilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Accessible Gradient Generator"
-      description="Create gradients that maintain sufficient contrast throughout."
-      onConvert={cssColorConverter}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <AccessibilityTool title="Accessible Gradient Generator" description="Accessible Gradient Generator. Free online color tool for developers and designers." toolType="accessible-gradient" />
   )
 }

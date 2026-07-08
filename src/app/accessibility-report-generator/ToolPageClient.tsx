@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { cssColorConverter } from '@/lib/converters'
-
-const example = '#ff0044'
+import AccessibilityTool from '@/components/tools/AccessibilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Accessibility Report Generator"
-      description="Generate comprehensive accessibility reports for your color choices."
-      onConvert={cssColorConverter}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <AccessibilityTool title="Accessibility Report Generator" description="Accessibility Report Generator. Free online color tool for developers and designers." toolType="report-generator" />
   )
 }

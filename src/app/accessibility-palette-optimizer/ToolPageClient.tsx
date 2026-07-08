@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { cssColorConverter } from '@/lib/converters'
-
-const example = '#ff0044'
+import AccessibilityTool from '@/components/tools/AccessibilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Accessibility Palette Optimizer"
-      description="Optimize your color palette to maximize accessibility compliance."
-      onConvert={cssColorConverter}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <AccessibilityTool title="Accessibility Palette Optimizer" description="Accessibility Palette Optimizer. Free online color tool for developers and designers." toolType="palette-optimizer" />
   )
 }

@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { colorName } from '@/lib/converters'
-
-const example = '#ff0044'
+import UtilityTool from '@/components/tools/UtilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Android Colors.xml Generator"
-      description="Generate Android colors.xml resource files from your palette."
-      onConvert={colorName}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <UtilityTool title="Android Colors.xml Generator" description="Android Colors.xml Generator. Free online color tool for developers and designers." utilityType="android-xml" />
   )
 }

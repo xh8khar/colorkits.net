@@ -1,23 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { contrastRatio, wcagLevel } from '@/lib/converters'
-const checkContrast = (input: string) => {
-  const [c1, c2] = input.split('\n').map(s => s.trim())
-  if (!c1 || !c2) throw new Error('Provide two colors separated by a newline')
-  const ratio = contrastRatio(c1, c2)
-  const level = wcagLevel(ratio)
-  return `Contrast Ratio: ${ratio.toFixed(2)}:1\nWCAG Level: ${level}`
-}
-const example = '#ff0044'
+import ContrastCheckerTool from '@/components/tools/ContrastCheckerTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="AA Contrast Checker"
-      description="Check color combinations against WCAG AA standards (4.5:1 ratio)."
-      onConvert={checkContrast}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ContrastCheckerTool title="AA Contrast Checker" description="AA Contrast Checker. Free online color tool for developers and designers." checkerType="aa" />
   )
 }

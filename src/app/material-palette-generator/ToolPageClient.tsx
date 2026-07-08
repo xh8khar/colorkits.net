@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { generateShades } from '@/lib/converters'
-
-const example = '#ff0044'
+import PaletteGeneratorTool from '@/components/tools/PaletteGeneratorTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Material Palette Generator"
-      description="Material Palette Generator. Free online color tool for developers and designers."
-      onConvert={generateShades}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <PaletteGeneratorTool title="Material Palette Generator" description="Material Palette Generator. Free online color tool for developers and designers." paletteType="material" />
   )
 }

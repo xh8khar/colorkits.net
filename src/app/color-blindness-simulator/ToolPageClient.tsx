@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { colorBlindSimulate } from '@/lib/converters'
-const simulate = (input: string) => colorBlindSimulate(input, 'achromatopsia')
-const example = '#ff0044'
+import AccessibilityTool from '@/components/tools/AccessibilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Color Blindness Simulator"
-      description="Preview your designs through the eyes of users with color blindness."
-      onConvert={simulate}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <AccessibilityTool title="Color Blindness Simulator" description="Color Blindness Simulator. Free online color tool for developers and designers." toolType="color-blindness-simulator" />
   )
 }

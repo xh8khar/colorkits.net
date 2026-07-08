@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { colorName } from '@/lib/converters'
-
-const example = '#ff0044'
+import UtilityTool from '@/components/tools/UtilityTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Flutter Theme Generator"
-      description="Generate Flutter ThemeData color configuration from your palette."
-      onConvert={colorName}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <UtilityTool title="Flutter Theme Generator" description="Flutter Theme Generator. Free online color tool for developers and designers." utilityType="flutter-theme" />
   )
 }

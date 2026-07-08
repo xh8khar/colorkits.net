@@ -113,6 +113,28 @@ export function rgbaToHex(input: string): string {
   return rgbToHexValues(r, g, b)
 }
 
+export function rgbToHwb(input: string): string {
+  const { r, g, b } = parseRgb(input)
+  const [h] = rgbToHsvValues(r, g, b)
+  const w = Math.min(r, g, b)
+  const bl = 255 - Math.max(r, g, b)
+  return `hwb(${h.toFixed(1)}, ${(w / 255 * 100).toFixed(1)}%, ${(bl / 255 * 100).toFixed(1)}%)`
+}
+
+export function hwbToRgb(input: string): string {
+  const { h, w, b } = parseHwb(input)
+  const white = w / 100
+  const black = b / 100
+  if (white + black >= 1) {
+    const gray = Math.round(white / (white + black) * 255)
+    return `rgb(${gray}, ${gray}, ${gray})`
+  }
+  const v = 1 - black
+  const sv = white < 1 ? 1 - white / v : 0
+  const [r, g, bb] = hsvToRgbValues(h, sv * 100, v * 100)
+  return `rgb(${r}, ${g}, ${bb})`
+}
+
 export function hexToHwb(input: string): string {
   const hex = parseHex(input)
   const [r, g, b] = hexToRgbValues(hex)

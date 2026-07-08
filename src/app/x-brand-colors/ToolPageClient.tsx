@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { colorName } from '@/lib/converters'
-
-const example = '#ff0044'
+import ColorReferenceTool from '@/components/tools/ColorReferenceTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="X Brand Colors"
-      description="X Brand Colors. Free online color tool for developers and designers."
-      onConvert={colorName}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ColorReferenceTool title="X Brand Colors" description="X Brand Colors. Free online color tool for developers and designers." referenceType="x-brand" />
   )
 }

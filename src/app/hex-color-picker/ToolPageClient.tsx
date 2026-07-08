@@ -1,17 +1,8 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
-import { hexToRgb } from '@/lib/converters'
-
-const example = '#ff0044'
+import ColorPickerTool from '@/components/tools/ColorPickerTool'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="HEX Color Picker"
-      description="HEX Color Picker. Free online color tool for developers and designers."
-      onConvert={hexToRgb}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ColorPickerTool title="HEX Color Picker" description="HEX Color Picker. Free online color tool for developers and designers." mode="hex" />
   )
 }

@@ -1,17 +1,11 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
+import ColorConverterTool from '@/components/tools/ColorConverterTool'
 import { rgbToHex } from '@/lib/converters'
 
 const example = 'rgb(255, 0, 68)'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="RGB to HEX"
-      description="RGB to HEX. Free online color tool for developers and designers."
-      onConvert={rgbToHex}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ColorConverterTool title="RGB to HEX" description="RGB to HEX. Free online color converter tool for developers." convertFn={rgbToHex} exampleInput={example} colorPreview="#ff0044" />
   )
 }

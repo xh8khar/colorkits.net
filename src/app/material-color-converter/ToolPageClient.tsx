@@ -1,17 +1,11 @@
 'use client'
-import ToolLayout from '@/components/tools/ToolLayout'
+import ColorConverterTool from '@/components/tools/ColorConverterTool'
 import { cssColorConverter } from '@/lib/converters'
 
-const example = '#ff0044'
+const example = 'red-500'
 
 export default function ToolPageClient() {
   return (
-    <ToolLayout
-      title="Material Color Converter"
-      description="Material Color Converter. Free online color tool for developers and designers."
-      onConvert={cssColorConverter}
-      exampleInput={example}
-      colorPreview="#ff0044"
-    />
+    <ColorConverterTool title="Material Color Converter" description="Material Color Converter. Free online color converter tool for developers." convertFn={cssColorConverter} exampleInput={example} />
   )
 }
