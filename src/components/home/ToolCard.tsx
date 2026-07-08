@@ -62,30 +62,6 @@ const categoryColors: Record<string, string> = {
   utility: 'border-cyan-200 dark:border-cyan-800 hover:border-cyan-400 dark:hover:border-cyan-500',
 }
 
-const categoryBadgeColors: Record<string, string> = {
-  converter: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
-  picker: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
-  palette: 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
-  gradient: 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',
-  accessibility: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400',
-  image: 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
-  adjustment: 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400',
-  reference: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
-  utility: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
-}
-
-const categoryLabels: Record<string, string> = {
-  converter: 'Converter',
-  picker: 'Picker',
-  palette: 'Palette',
-  gradient: 'Gradient',
-  accessibility: 'Accessibility',
-  image: 'Image',
-  adjustment: 'Adjustment',
-  reference: 'Reference',
-  utility: 'Utility',
-}
-
 export default function ToolCard({ tool }: { tool: Tool }) {
   return (
     <Link
@@ -93,7 +69,7 @@ export default function ToolCard({ tool }: { tool: Tool }) {
       className={`group block p-5 rounded-xl border bg-white dark:bg-slate-900 transition-all duration-200 hover:shadow-lg ${categoryColors[tool.category] || 'border-slate-200 dark:border-slate-700'}`}
     >
       <div className="flex items-start gap-3 mb-2">
-        <div className={`p-2 rounded-lg shrink-0 ${categoryBadgeColors[tool.category] || 'bg-slate-100 text-slate-600'}`}>
+        <div className="p-2 rounded-lg shrink-0 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
           {iconMap[tool.icon] || iconMap.palette}
         </div>
         <div className="min-w-0">
@@ -103,9 +79,6 @@ export default function ToolCard({ tool }: { tool: Tool }) {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{tool.description}</p>
         </div>
       </div>
-      <span className={`inline-block mt-2 text-xs font-medium px-2 py-0.5 rounded-full ${categoryBadgeColors[tool.category] || 'bg-slate-100 text-slate-600'}`}>
-        {categoryLabels[tool.category] || tool.category}
-      </span>
     </Link>
   )
 }
