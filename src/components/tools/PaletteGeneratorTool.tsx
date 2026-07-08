@@ -57,26 +57,27 @@ function textColorForBg(hex: string): string {
 
 const ch = (h: number) => ((h % 360) + 360) % 360
 
-function generatePalette(baseColor: string, type: PaletteType): string[] {
+function generatePalette(baseColor: string, type: PaletteType, hueOffset = 0): string[] {
   const [bh, bs, bl] = toHsl(baseColor)
+  const bh_ = ch(bh + hueOffset)
 
   switch (type) {
     case 'monochromatic': {
       const colors: string[] = [baseColor]
       for (let i = 0; i < 3; i++) {
         const pct = (i + 1) / 5
-        colors.push(fromHsl(bh, bs, Math.round(bl * (1 - pct))))
+        colors.push(fromHsl(ch(bh_ + Math.round(hueOffset)), bs, Math.round(bl * (1 - pct))))
       }
       for (let i = 0; i < 3; i++) {
         const pct = (i + 1) / 5
-        colors.push(fromHsl(bh, bs, Math.round(bl + (100 - bl) * pct)))
+        colors.push(fromHsl(ch(bh_ + Math.round(hueOffset)), bs, Math.round(bl + (100 - bl) * pct)))
       }
       return colors
     }
     case 'analogous':
-      return [baseColor, ...[-40, -20, 20, 40].map(o => fromHsl(ch(bh + o), bs, bl))]
+      return [baseColor, ...[-40, -20, 20, 40].map(o => fromHsl(ch(bh_ + o), bs, bl))]
     case 'complementary': {
-      const comp = complementaryColor(baseColor)
+      const comp = complementaryColor(fromHsl(bh_, bs, bl))
       const [ch_, cs, cl_] = toHsl(comp)
       return [
         baseColor,
@@ -87,115 +88,115 @@ function generatePalette(baseColor: string, type: PaletteType): string[] {
       ]
     }
     case 'split-complementary':
-      return [baseColor, fromHsl(ch(bh + 150), bs, bl), fromHsl(ch(bh + 210), bs, bl), fromHsl(ch(bh + 150), clamp(bs * 0.5, 25, 55), clamp(bl + 20, 55, 85)), fromHsl(ch(bh + 210), bs, clamp(bl * 0.6, 15, 40))]
+      return [baseColor, fromHsl(ch(bh_ + 150), bs, bl), fromHsl(ch(bh_ + 210), bs, bl), fromHsl(ch(bh_ + 150), clamp(bs * 0.5, 25, 55), clamp(bl + 20, 55, 85)), fromHsl(ch(bh_ + 210), bs, clamp(bl * 0.6, 15, 40))]
     case 'triadic': {
-      const t1 = fromHsl(ch(bh + 120), bs, bl)
-      const t2 = fromHsl(ch(bh + 240), bs, bl)
-      return [baseColor, t1, t2, fromHsl(ch(bh + 120), clamp(bs * 0.5, 20, 50), clamp(bl + 20, 50, 80)), fromHsl(ch(bh + 240), clamp(bs * 0.5, 20, 50), clamp(bl + 15, 45, 75))]
+      const t1 = fromHsl(ch(bh_ + 120), bs, bl)
+      const t2 = fromHsl(ch(bh_ + 240), bs, bl)
+      return [baseColor, t1, t2, fromHsl(ch(bh_ + 120), clamp(bs * 0.5, 20, 50), clamp(bl + 20, 50, 80)), fromHsl(ch(bh_ + 240), clamp(bs * 0.5, 20, 50), clamp(bl + 15, 45, 75))]
     }
     case 'tetradic': {
       const offsets = [60, 180, 240]
-      const others = offsets.map(o => fromHsl(ch(bh + o), bs, bl))
-      return [baseColor, ...others, fromHsl(ch(bh + 120), clamp(bs * 0.4, 20, 45), clamp(bl + 20, 50, 80))]
+      const others = offsets.map(o => fromHsl(ch(bh_ + o), bs, bl))
+      return [baseColor, ...others, fromHsl(ch(bh_ + 120), clamp(bs * 0.4, 20, 45), clamp(bl + 20, 50, 80))]
     }
     case 'square': {
       const offsets = [90, 180, 270]
-      const others = offsets.map(o => fromHsl(ch(bh + o), bs, bl))
-      return [baseColor, ...others, fromHsl(ch(bh + 45), clamp(bs * 0.5, 25, 55), clamp(bl + 15, 45, 75))]
+      const others = offsets.map(o => fromHsl(ch(bh_ + o), bs, bl))
+      return [baseColor, ...others, fromHsl(ch(bh_ + 45), clamp(bs * 0.5, 25, 55), clamp(bl + 15, 45, 75))]
     }
     case 'rainbow':
-      return [0, 50, 100, 150, 200, 250, 300].map(h => fromHsl(h, 80, 55))
+      return [0, 50, 100, 150, 200, 250, 300].map(h => fromHsl(ch(h + hueOffset), 80, 55))
     case 'pastel': {
       const s = clamp(bs * 0.35, 18, 40)
       const l = clamp(bl + 25, 75, 92)
-      return [-40, -20, 0, 20, 40].map(o => fromHsl(ch(bh + o), s, l))
+      return [-40, -20, 0, 20, 40].map(o => fromHsl(ch(bh_ + o), s, l))
     }
     case 'neon':
-      return [-40, -20, 0, 20, 40].map(o => fromHsl(ch(bh + o), 95, 55))
+      return [-40, -20, 0, 20, 40].map(o => fromHsl(ch(bh_ + o), 95, 55))
     case 'dark-theme': {
-      const bg = fromHsl(bh, clamp(bs * 0.3, 5, 15), 10)
-      const surface = fromHsl(bh, clamp(bs * 0.4, 10, 20), 18)
-      const border = fromHsl(bh, clamp(bs * 0.3, 10, 20), 28)
-      const muted = fromHsl(bh, clamp(bs * 0.2, 5, 15), 50)
-      const text = fromHsl(bh, clamp(bs * 0.1, 0, 10), 90)
-      const accent = fromHsl(ch(bh + 180), 70, 60)
-      return [bg, surface, border, muted, text, baseColor, accent]
+      const bg = fromHsl(bh_, clamp(bs * 0.3, 5, 15), 10)
+      const surface = fromHsl(bh_, clamp(bs * 0.4, 10, 20), 18)
+      const border = fromHsl(bh_, clamp(bs * 0.3, 10, 20), 28)
+      const muted = fromHsl(bh_, clamp(bs * 0.2, 5, 15), 50)
+      const text = fromHsl(bh_, clamp(bs * 0.1, 0, 10), 90)
+      const accent = fromHsl(ch(bh_ + 180), 70, 60)
+      return [bg, surface, border, muted, text, fromHsl(bh_, bs, bl), accent]
     }
     case 'light-theme': {
-      const bg = fromHsl(bh, clamp(bs * 0.1, 0, 10), 98)
-      const border = fromHsl(bh, clamp(bs * 0.2, 5, 15), 90)
-      const muted = fromHsl(bh, clamp(bs * 0.2, 10, 20), 60)
-      const text = fromHsl(bh, clamp(bs * 0.1, 0, 10), 15)
-      const accent = fromHsl(ch(bh + 180), 70, 50)
-      return ['#ffffff', bg, border, muted, text, baseColor, accent]
+      const bg = fromHsl(bh_, clamp(bs * 0.1, 0, 10), 98)
+      const border = fromHsl(bh_, clamp(bs * 0.2, 5, 15), 90)
+      const muted = fromHsl(bh_, clamp(bs * 0.2, 10, 20), 60)
+      const text = fromHsl(bh_, clamp(bs * 0.1, 0, 10), 15)
+      const accent = fromHsl(ch(bh_ + 180), 70, 50)
+      return ['#ffffff', bg, border, muted, text, fromHsl(bh_, bs, bl), accent]
     }
     case 'random':
       return Array.from({ length: 6 }, () => randomColor())
     case 'ai':
     case 'brand': {
-      const s = fromHsl(ch(bh + 30), clamp(bs - 10, 50, 90), clamp(bl - 5, 30, 60))
-      const a1 = fromHsl(ch(bh + 180), 75, 55)
-      const a2 = fromHsl(ch(bh - 30), clamp(bs - 10, 40, 80), clamp(bl + 10, 40, 70))
-      const n = fromHsl(ch(bh + 10), clamp(bs * 0.2, 2, 10), clamp(bl * 0.3, 10, 25))
-      return [baseColor, s, a1, a2, n, '#ffffff']
+      const s = fromHsl(ch(bh_ + 30), clamp(bs - 10, 50, 90), clamp(bl - 5, 30, 60))
+      const a1 = fromHsl(ch(bh_ + 180), 75, 55)
+      const a2 = fromHsl(ch(bh_ - 30), clamp(bs - 10, 40, 80), clamp(bl + 10, 40, 70))
+      const n = fromHsl(ch(bh_ + 10), clamp(bs * 0.2, 2, 10), clamp(bl * 0.3, 10, 25))
+      return [fromHsl(bh_, bs, bl), s, a1, a2, n, '#ffffff']
     }
     case 'vintage':
     case 'retro':
-      return [0, 15, 30, 45, 60, 75].map(o => fromHsl(30 + o, 35, 45))
+      return [0, 15, 30, 45, 60, 75].map(o => fromHsl(ch(30 + o + hueOffset), 35, 45))
     case 'nature':
-      return [120, 90, 150, 30, 60, 200].map(h => fromHsl(h, 55, 45))
+      return [120, 90, 150, 30, 60, 200].map(h => fromHsl(ch(h + hueOffset), 55, 45))
     case 'ocean':
-      return [190, 200, 210, 220, 180, 170].map(h => fromHsl(h, 60, 45))
+      return [190, 200, 210, 220, 180, 170].map(h => fromHsl(ch(h + hueOffset), 60, 45))
     case 'sunset':
-      return [10, 20, 350, 330, 40, 50].map(h => fromHsl(h, 75, 55))
+      return [10, 20, 350, 330, 40, 50].map(h => fromHsl(ch(h + hueOffset), 75, 55))
     case 'autumn':
-      return [20, 30, 10, 40, 350, 45].map(h => fromHsl(h, 65, 45))
+      return [20, 30, 10, 40, 350, 45].map(h => fromHsl(ch(h + hueOffset), 65, 45))
     case 'spring':
-      return [120, 140, 90, 30, 350, 160].map(h => fromHsl(h, 55, 65))
+      return [120, 140, 90, 30, 350, 160].map(h => fromHsl(ch(h + hueOffset), 55, 65))
     case 'winter':
-      return [210, 200, 220, 230, 190, 240].map(h => fromHsl(h, 30, 70))
+      return [210, 200, 220, 230, 190, 240].map(h => fromHsl(ch(h + hueOffset), 30, 70))
     case 'summer':
-      return [40, 50, 30, 10, 350, 60].map(h => fromHsl(h, 70, 55))
+      return [40, 50, 30, 10, 350, 60].map(h => fromHsl(ch(h + hueOffset), 70, 55))
     case 'earth-tone':
-      return [25, 15, 35, 10, 30, 5].map(h => fromHsl(h, 40, 40))
+      return [25, 15, 35, 10, 30, 5].map(h => fromHsl(ch(h + hueOffset), 40, 40))
     case 'flat-ui':
-      return [190, 160, 210, 50, 340, 220].map(h => fromHsl(h, 70, 50))
+      return [190, 160, 210, 50, 340, 220].map(h => fromHsl(ch(h + hueOffset), 70, 50))
     case 'corporate':
-      return [210, 200, 220, 230, 190, 215].map(h => fromHsl(h, 40, 40))
+      return [210, 200, 220, 230, 190, 215].map(h => fromHsl(ch(h + hueOffset), 40, 40))
     case 'luxury':
-      return [40, 35, 45, 30, 50, 38].map(h => fromHsl(h, 55, 35))
+      return [40, 35, 45, 30, 50, 38].map(h => fromHsl(ch(h + hueOffset), 55, 35))
     case 'gaming':
-      return [260, 280, 240, 300, 320, 200].map(h => fromHsl(h, 80, 55))
+      return [260, 280, 240, 300, 320, 200].map(h => fromHsl(ch(h + hueOffset), 80, 55))
     case 'ecommerce':
-      return [210, 160, 50, 340, 220, 190].map(h => fromHsl(h, 65, 50))
+      return [210, 160, 50, 340, 220, 190].map(h => fromHsl(ch(h + hueOffset), 65, 50))
     case 'dashboard':
-      return [210, 190, 160, 140, 50, 340].map(h => fromHsl(h, 60, 50))
+      return [210, 190, 160, 140, 50, 340].map(h => fromHsl(ch(h + hueOffset), 60, 50))
     case 'mobile-app':
-      return [210, 200, 230, 160, 340, 50].map(h => fromHsl(h, 65, 55))
+      return [210, 200, 230, 160, 340, 50].map(h => fromHsl(ch(h + hueOffset), 65, 55))
     case 'saas':
-      return [220, 200, 180, 210, 230, 190].map(h => fromHsl(h, 50, 50))
+      return [220, 200, 180, 210, 230, 190].map(h => fromHsl(ch(h + hueOffset), 50, 50))
     case 'logo': {
-      const secondary = fromHsl(ch(bh + 40), clamp(bs - 5, 60, 90), clamp(bl - 10, 30, 55))
-      const accent = fromHsl(ch(bh + 180), 70, 50)
-      const dark = fromHsl(bh, clamp(bs * 0.2, 2, 10), clamp(bl * 0.2, 8, 20))
-      return [baseColor, secondary, accent, dark, '#ffffff']
+      const secondary = fromHsl(ch(bh_ + 40), clamp(bs - 5, 60, 90), clamp(bl - 10, 30, 55))
+      const accent = fromHsl(ch(bh_ + 180), 70, 50)
+      const dark = fromHsl(bh_, clamp(bs * 0.2, 2, 10), clamp(bl * 0.2, 8, 20))
+      return [fromHsl(bh_, bs, bl), secondary, accent, dark, '#ffffff']
     }
     case 'fashion':
-      return [340, 350, 330, 320, 10, 20].map(h => fromHsl(h, 60, 55))
+      return [340, 350, 330, 320, 10, 20].map(h => fromHsl(ch(h + hueOffset), 60, 55))
     case 'food':
-      return [10, 20, 350, 30, 340, 5].map(h => fromHsl(h, 65, 50))
+      return [10, 20, 350, 30, 340, 5].map(h => fromHsl(ch(h + hueOffset), 65, 50))
     case 'material':
     case 'tailwind':
     case 'bootstrap':
     case 'ui':
     default: {
-      const secondary = fromHsl(ch(bh + 30), clamp(bs - 10, 50, 85), clamp(bl - 8, 35, 60))
-      const accent = fromHsl(ch(bh + 180), 70, 50)
-      const success = fromHsl(160, 60, 45)
-      const warning = fromHsl(45, 85, 50)
-      const danger = fromHsl(0, 75, 50)
-      const info = fromHsl(200, 65, 50)
-      return [baseColor, secondary, accent, success, warning, danger, info]
+      const secondary = fromHsl(ch(bh_ + 30), clamp(bs - 10, 50, 85), clamp(bl - 8, 35, 60))
+      const accent = fromHsl(ch(bh_ + 180), 70, 50)
+      const success = fromHsl(ch(160 + hueOffset), 60, 45)
+      const warning = fromHsl(ch(45 + hueOffset), 85, 50)
+      const danger = fromHsl(ch(0 + hueOffset), 75, 50)
+      const info = fromHsl(ch(200 + hueOffset), 65, 50)
+      return [fromHsl(bh_, bs, bl), secondary, accent, success, warning, danger, info]
     }
   }
 }
@@ -269,6 +270,7 @@ export default function PaletteGeneratorTool({ title, description, paletteType }
   const [baseColor, setBaseColor] = useState<string>(() => defaultBaseColors[paletteType] || '#f43f5e')
   const [colors, setColors] = useState<PaletteColor[]>([])
   const [genKey, setGenKey] = useState(0)
+  const [hueOffset, setHueOffset] = useState(0)
   const needsBase = !noBaseColorTypes.has(paletteType)
 
   const pathname = usePathname()
@@ -276,8 +278,10 @@ export default function PaletteGeneratorTool({ title, description, paletteType }
   const content = useMemo(() => getToolContent(toolId), [toolId])
 
   const regenerate = useCallback(() => {
+    const offset = Math.random() * 360
+    setHueOffset(offset)
     setColors(prev => {
-      const hexes = generatePalette(baseColor, paletteType)
+      const hexes = generatePalette(baseColor, paletteType, offset)
       return hexes.map((hex, i) => ({
         hex,
         locked: prev[i]?.locked || false,
@@ -289,16 +293,18 @@ export default function PaletteGeneratorTool({ title, description, paletteType }
   useEffect(() => {
     const def = defaultBaseColors[paletteType] || '#f43f5e'
     setBaseColor(def)
-    setColors(generatePalette(def, paletteType).map(hex => ({ hex, locked: false })))
+    setHueOffset(0)
+    setColors(generatePalette(def, paletteType, 0).map(hex => ({ hex, locked: false })))
     setGenKey(k => k + 1)
   }, [paletteType])
 
   const handleBaseColorChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setBaseColor(val)
+    setHueOffset(0)
     if (needsBase) {
       setColors(prev => {
-        const hexes = generatePalette(val, paletteType)
+        const hexes = generatePalette(val, paletteType, 0)
         return hexes.map((hex, i) => ({ hex, locked: prev[i]?.locked || false }))
       })
     }
@@ -307,9 +313,10 @@ export default function PaletteGeneratorTool({ title, description, paletteType }
   const handleHexInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value
     setBaseColor(val)
+    setHueOffset(0)
     if (/^#[0-9a-fA-F]{6}$/.test(val) && needsBase) {
       setColors(prev => {
-        const hexes = generatePalette(val, paletteType)
+        const hexes = generatePalette(val, paletteType, 0)
         return hexes.map((hex, i) => ({ hex, locked: prev[i]?.locked || false }))
       })
     }
