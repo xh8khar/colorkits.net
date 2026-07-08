@@ -138,17 +138,9 @@ export default function Navbar({ onMenuClick }: { onMenuClick: () => void }) {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
-            <Link href="/" className="lg:hidden flex items-center gap-2 font-bold text-xl text-slate-900 dark:text-white">
-              <img src="/favicon.svg" alt="ColorKits" className="w-7 h-7" />
-              ColorKits
-            </Link>
           </div>
 
           <div className="hidden lg:flex items-center gap-1">
-            <Link href="/" className="flex items-center gap-2 font-bold text-xl text-slate-900 dark:text-white mr-2 shrink-0">
-              <img src="/favicon.svg" alt="ColorKits" className="w-7 h-7" />
-              ColorKits
-            </Link>
             <Link href="/blog" className="px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Blog</Link>
             <Link href="/learn" className="px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Learn</Link>
             <Link href="/about" className="px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">About</Link>

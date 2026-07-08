@@ -39,13 +39,17 @@ export default function Footer() {
             </ul>
           </div>
           <div>
-            <div className="flex items-center gap-2 font-bold text-xl text-slate-900 dark:text-white mb-3">
-              <img src="/favicon.svg" alt="ColorKits" className="w-7 h-7" />
-              ColorKits
-            </div>
+            <h3 className="font-semibold text-slate-900 dark:text-white mb-3">ColorKits</h3>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
               Fast, free &amp; privacy-friendly color tools for developers. All processing happens in your browser.
             </p>
+            <div className="flex -space-x-1 mb-3">
+              <span className="w-3 h-3 rounded-full bg-rose-500" />
+              <span className="w-3 h-3 rounded-full bg-amber-500" />
+              <span className="w-3 h-3 rounded-full bg-emerald-500" />
+              <span className="w-3 h-3 rounded-full bg-blue-500" />
+              <span className="w-3 h-3 rounded-full bg-purple-500" />
+            </div>
             <p className="text-xs text-slate-500 dark:text-slate-500 mb-2">
               &copy; {new Date().getFullYear()} ColorKits. MIT License.
             </p>
