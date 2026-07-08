@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { navItems } from '@/lib/navigation'
-import ThemeToggle from './ThemeToggle'
 
 interface SidebarProps {
   isOpen: boolean
@@ -121,21 +120,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside
         className={`w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col ${
           /* Mobile: fixed overlay drawer */
-          isOpen ? 'fixed top-0 left-0 z-50 h-full translate-x-0' : 'fixed top-0 left-0 z-50 h-full -translate-x-full'
+          isOpen ? 'fixed top-0 left-0 z-50 h-full translate-x-0 pt-14' : 'fixed top-0 left-0 z-50 h-full -translate-x-full'
         } md:static md:z-auto md:translate-x-0 md:h-screen md:sticky md:top-0 transition-transform duration-300 ease-in-out`}
       >
-        <div className="flex items-center justify-between h-14 px-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <Link href="/" onClick={onClose} className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white">
-            <span className="text-rose-500">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-            </span>
-            ColorKits
-          </Link>
+        <div className="flex items-center justify-end h-14 px-4 md:hidden shrink-0">
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden"
+            className="p-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
             aria-label="Close sidebar"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,12 +246,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           })}
         </nav>
 
-        <div className="px-3 py-3 border-t border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-500 dark:text-slate-400">Theme</span>
-            <ThemeToggle />
-          </div>
-        </div>
+        <div className="px-3 py-3 shrink-0" />
       </aside>
     </>
   )
