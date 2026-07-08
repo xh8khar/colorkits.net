@@ -121,7 +121,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       <aside
         className={`fixed top-0 left-0 z-50 h-full w-64 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col transition-transform duration-300 ease-in-out ${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } md:translate-x-0`}
+        } md:hidden`}
       >
         <div className="flex items-center justify-between h-14 px-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <Link href="/" onClick={onClose} className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white">

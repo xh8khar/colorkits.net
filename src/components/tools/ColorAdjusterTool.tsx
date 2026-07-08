@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import ToolContent from './ToolContent'
+import { getToolContent } from '@/lib/toolContent'
+import { usePathname } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import { hexToRgb, rgbToHex, hexToHsl, rgbToHsl, hexToRgbValues, rgbToHexValues, rgbToHslValues, hslToRgbValues, mixColors } from '@/lib/converters'
@@ -46,6 +49,9 @@ export default function ColorAdjusterTool({ title, description, adjustmentType }
   const [grayscaleOn, setGrayscaleOn] = useState(false)
   const [sepiaOn, setSepiaOn] = useState(false)
   const [tempVal, setTempVal] = useState(0)
+  const [redEq, setRedEq] = useState(0)
+  const [greenEq, setGreenEq] = useState(0)
+  const [blueEq, setBlueEq] = useState(0)
 
   const adjustedColor = useMemo((): string => {
     try {
@@ -161,7 +167,11 @@ export default function ColorAdjusterTool({ title, description, adjustmentType }
           return blendColors(baseColor, secondColor, blendMode)
         }
         case 'equalizer': {
-          return baseColor
+          const adj = (channel: number, eq: number): number => {
+            if (eq >= 0) return channel + (255 - channel) * (eq / 100)
+            return channel * (1 + eq / 100)
+          }
+          return rgbToHexValues(clamp(adj(r, redEq)), clamp(adj(g, greenEq)), clamp(adj(b, blueEq)))
         }
         case 'harmonizer': {
           const [h, s, l] = rgbToHslValues(r, g, b)
@@ -186,7 +196,7 @@ export default function ColorAdjusterTool({ title, description, adjustmentType }
     } catch {
       return baseColor
     }
-  }, [baseColor, secondColor, adjustmentType, amount, hueRotate, saturationVal, brightnessVal, contrastVal, gammaVal, opacityVal, vibranceVal, blendMode, mixRatio, invertOn, grayscaleOn, sepiaOn, tempVal])
+  }, [baseColor, secondColor, adjustmentType, amount, hueRotate, saturationVal, brightnessVal, contrastVal, gammaVal, opacityVal, vibranceVal, blendMode, mixRatio, invertOn, grayscaleOn, sepiaOn, tempVal, redEq, greenEq, blueEq])
 
   const adjustedRgb = useMemo(() => {
     try {
@@ -250,8 +260,13 @@ export default function ColorAdjusterTool({ title, description, adjustmentType }
 
   const showSecondColor = adjustmentType === 'mixer' || adjustmentType === 'blend' || adjustmentType === 'overlay' || adjustmentType === 'multiply' || adjustmentType === 'screen' || adjustmentType === 'soft-light' || adjustmentType === 'hard-light' || adjustmentType === 'color-dodge' || adjustmentType === 'burn'
 
+  const pathname = usePathname()
+  const toolId = pathname?.replace(/^\//, '')?.replace(/\/$/, '') || ''
+  const content = useMemo(() => getToolContent(toolId), [toolId])
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <ToolContent title={title} description={description} howToUse={content.howToUse} faq={content.faq} relatedTools={content.relatedTools}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{title}</h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-7xl">{description}</p>
@@ -400,9 +415,9 @@ export default function ColorAdjusterTool({ title, description, adjustmentType }
               {adjustmentType === 'equalizer' && (
                 <div className="space-y-3">
                   <p className="text-xs text-slate-500 dark:text-slate-400">Adjust individual RGB channels:</p>
-                  <SliderControl label="Red" value={0} onChange={() => {}} min={-100} max={100} />
-                  <SliderControl label="Green" value={0} onChange={() => {}} min={-100} max={100} />
-                  <SliderControl label="Blue" value={0} onChange={() => {}} min={-100} max={100} />
+                  <SliderControl label="Red" value={redEq} onChange={setRedEq} min={-100} max={100} />
+                  <SliderControl label="Green" value={greenEq} onChange={setGreenEq} min={-100} max={100} />
+                  <SliderControl label="Blue" value={blueEq} onChange={setBlueEq} min={-100} max={100} />
                 </div>
               )}
             </div>
@@ -484,6 +499,7 @@ export default function ColorAdjusterTool({ title, description, adjustmentType }
         </div>
       </div>
     </div>
+    </ToolContent>
   )
 }
 

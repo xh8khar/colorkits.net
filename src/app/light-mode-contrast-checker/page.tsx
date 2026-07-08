@@ -2,8 +2,17 @@ import type { Metadata } from 'next'
 import ToolPageClient from './ToolPageClient'
 
 export const metadata: Metadata = {
-  title: 'Light Mode Contrast Checker - Free Online Color Tool',
-  description: 'Verify color contrast ratios for light mode interface designs.',
+  title: 'Light Mode Contrast Checker - Free Online Color Tool | ColorKits',
+  description: 'Check color contrast against WCAG accessibility standards. Free online light mode contrast checker for web developers and designers. Ensure your designs meet WCAG 2.2 AA and AAA requirements with detailed pass/fail analysis.',
+  keywords: ['light mode contrast checker', 'light mode contrast checker tool', 'web accessibility contrast', 'wcag 2.2 compliance', 'accessibility checker'],
+  openGraph: {
+    title: 'Light Mode Contrast Checker - Free Online Color Tool | ColorKits',
+    description: 'Check color contrast against WCAG accessibility standards.',
+  },
+  twitter: {
+    title: 'Light Mode Contrast Checker - Free Online Color Tool | ColorKits',
+    description: 'Check color contrast against WCAG accessibility standards.',
+  },
 }
 
 export default function Page() {

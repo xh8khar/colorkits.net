@@ -2,8 +2,17 @@ import type { Metadata } from 'next'
 import ToolPageClient from './ToolPageClient'
 
 export const metadata: Metadata = {
-  title: 'AA Contrast Checker - Free Online Color Tool',
-  description: 'Check color combinations against WCAG AA standards (4.5:1 ratio).',
+  title: 'Aa Contrast Checker - Free Online Color Tool | ColorKits',
+  description: 'Check color contrast against WCAG accessibility standards. Free online aa contrast checker for web developers and designers. Ensure your designs meet WCAG 2.2 AA and AAA requirements with detailed pass/fail analysis.',
+  keywords: ['aa contrast checker', 'aa contrast checker tool', 'web accessibility contrast', 'wcag 2.2 compliance', 'accessibility checker'],
+  openGraph: {
+    title: 'Aa Contrast Checker - Free Online Color Tool | ColorKits',
+    description: 'Check color contrast against WCAG accessibility standards.',
+  },
+  twitter: {
+    title: 'Aa Contrast Checker - Free Online Color Tool | ColorKits',
+    description: 'Check color contrast against WCAG accessibility standards.',
+  },
 }
 
 export default function Page() {

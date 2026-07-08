@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useMemo, useCallback } from 'react'
+import ToolContent from './ToolContent'
+import { getToolContent } from '@/lib/toolContent'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import {
   contrastRatio, wcagLevel, isValidHex, colorBlindSimulate,
@@ -858,7 +861,508 @@ function LightModePreview() {
   )
 }
 
+function ReportGenerator() {
+  type ColorPair = { id: number; fg: string; bg: string; fgInput: string; bgInput: string }
+  const [pairs, setPairs] = useState<ColorPair[]>([
+    { id: 1, fg: '#1e293b', bg: '#ffffff', fgInput: '#1e293b', bgInput: '#ffffff' },
+  ])
+
+  let nextId = 2
+  const addPair = useCallback(() => {
+    const id = nextId++
+    setPairs(prev => [...prev, { id, fg: '#1e293b', bg: '#ffffff', fgInput: '#1e293b', bgInput: '#ffffff' }])
+  }, [])
+
+  const removePair = useCallback((id: number) => {
+    setPairs(prev => prev.filter(p => p.id !== id))
+  }, [])
+
+  const updatePair = useCallback((id: number, field: 'fg' | 'bg' | 'fgInput' | 'bgInput', value: string) => {
+    setPairs(prev => prev.map(p => {
+      if (p.id !== id) return p
+      const next = { ...p, [field]: value }
+      if (field === 'fgInput' || field === 'bgInput') {
+        const colorField = field === 'fgInput' ? 'fg' : 'bg'
+        const hex = value.startsWith('#') ? value : `#${value}`
+        if ((value.startsWith('#') && isValidHex(value)) || isValidHex(value)) {
+          try { parseColor(hex); next[colorField] = hex } catch {}
+        }
+      }
+      return next
+    }))
+  }, [])
+
+  const results = useMemo(() => pairs.map(p => {
+    const ratio = contrastRatio(p.fg, p.bg)
+    const level = wcagLevel(ratio)
+    return {
+      ...p,
+      ratio,
+      level,
+      passNormalText: ratio >= 4.5,
+      passLargeText: ratio >= 3,
+      passUI: ratio >= 3,
+    }
+  }), [pairs])
+
+  const summary = useMemo(() => {
+    const total = results.length
+    const passNormal = results.filter(r => r.passNormalText).length
+    const passLarge = results.filter(r => r.passLargeText).length
+    return {
+      total,
+      passNormal,
+      passLarge,
+      passNormalRate: total ? Math.round((passNormal / total) * 100) : 0,
+      passLargeRate: total ? Math.round((passLarge / total) * 100) : 0,
+    }
+  }, [results])
+
+  const exportText = useMemo(() => {
+    const lines = ['WCAG Contrast Report', '====================', '']
+    results.forEach((r, i) => {
+      lines.push(`Pair ${i + 1}:`)
+      lines.push(`  Foreground: ${r.fg}`)
+      lines.push(`  Background: ${r.bg}`)
+      lines.push(`  Contrast Ratio: ${r.ratio.toFixed(2)}:1`)
+      lines.push(`  WCAG Level: ${r.level}`)
+      lines.push(`  Normal Text (4.5:1): ${r.passNormalText ? 'PASS' : 'FAIL'}`)
+      lines.push(`  Large Text (3:1): ${r.passLargeText ? 'PASS' : 'FAIL'}`)
+      lines.push(`  UI Components (3:1): ${r.passUI ? 'PASS' : 'FAIL'}`)
+      lines.push('')
+    })
+    lines.push('--- Summary ---')
+    lines.push(`Total Pairs: ${summary.total}`)
+    lines.push(`Normal Text Pass Rate: ${summary.passNormal}/${summary.total} (${summary.passNormalRate}%)`)
+    lines.push(`Large Text Pass Rate: ${summary.passLarge}/${summary.total} (${summary.passLargeRate}%)`)
+    return lines.join('\n')
+  }, [results, summary])
+
+  const copyReport = useCallback(async () => {
+    try { await navigator.clipboard.writeText(exportText) } catch {}
+  }, [exportText])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Color Pairs</h3>
+        <Button variant="secondary" size="sm" onClick={addPair}>+ Add Pair</Button>
+      </div>
+
+      {results.map((r, i) => (
+        <div key={r.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Pair {i + 1}</span>
+            {results.length > 1 && (
+              <button onClick={() => removePair(r.id)} className="text-xs text-red-500 hover:text-red-600 font-medium">Remove</button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Foreground</label>
+              <div className="flex items-center gap-2">
+                <div className="relative shrink-0">
+                  <input type="color" value={r.fg} onChange={e => updatePair(r.id, 'fg', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="w-8 h-8 rounded-lg border-2 border-slate-200 dark:border-slate-600 shadow-sm" style={{ backgroundColor: r.fg }} />
+                </div>
+                <input type="text" value={r.fgInput} onChange={e => updatePair(r.id, 'fgInput', e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Background</label>
+              <div className="flex items-center gap-2">
+                <div className="relative shrink-0">
+                  <input type="color" value={r.bg} onChange={e => updatePair(r.id, 'bg', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                  <div className="w-8 h-8 rounded-lg border-2 border-slate-200 dark:border-slate-600 shadow-sm" style={{ backgroundColor: r.bg }} />
+                </div>
+                <input type="text" value={r.bgInput} onChange={e => updatePair(r.id, 'bgInput', e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500" />
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <span className="font-mono font-semibold text-slate-900 dark:text-white">{r.ratio.toFixed(2)}:1</span>
+            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+              r.level === 'AAA' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300' :
+              r.level === 'AA' || r.level === 'AA Large' ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300' :
+              'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300'
+            }`}>{r.level}</span>
+            <span className={`text-xs ${r.passNormalText ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              Normal: {r.passNormalText ? '✓' : '✗'}
+            </span>
+            <span className={`text-xs ${r.passLargeText ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              Large: {r.passLargeText ? '✓' : '✗'}
+            </span>
+            <span className={`text-xs ${r.passUI ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+              UI: {r.passUI ? '✓' : '✗'}
+            </span>
+          </div>
+          <div className="h-10 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center justify-center text-sm font-medium" style={{ backgroundColor: r.bg, color: r.fg }}>
+            Sample Text Preview
+          </div>
+        </div>
+      ))}
+
+      {results.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+          <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Summary</h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">{summary.total}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Total Pairs</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.passNormalRate}%</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Normal Text Pass</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.passLargeRate}%</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Large Text Pass</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{summary.passLargeRate}%</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">UI Pass</div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-2">
+        <Button variant="secondary" size="sm" onClick={copyReport}>Copy Report</Button>
+      </div>
+    </div>
+  )
+}
+
+function ComplianceChecker() {
+  const [textInput, setTextInput] = useState('#3b82f6\n#ffffff\n#1e293b\n#ef4444\n#10b981')
+
+  const colors = useMemo(() => {
+    return textInput.split('\n').map(l => l.trim()).filter(l => l.startsWith('#') && isValidHex(l))
+  }, [textInput])
+
+  const matrix = useMemo(() => {
+    const results: { fg: string; bg: string; ratio: number; level: string; pass: boolean }[] = []
+    for (const fg of colors) {
+      for (const bg of colors) {
+        if (fg === bg) continue
+        const ratio = contrastRatio(fg, bg)
+        results.push({ fg, bg, ratio, level: wcagLevel(ratio), pass: ratio >= 4.5 })
+      }
+    }
+    return results
+  }, [colors])
+
+  const summary = useMemo(() => {
+    const total = matrix.length
+    const passing = matrix.filter(m => m.pass).length
+    const failing = matrix.filter(m => !m.pass)
+    return {
+      total,
+      passing,
+      failingCount: failing.length,
+      passRate: total ? Math.round((passing / total) * 100) : 0,
+      failingPairs: failing.slice(0, 10),
+      hasIssues: failing.length > 0,
+    }
+  }, [matrix])
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Color Palette (one hex per line)</label>
+        <textarea
+          value={textInput}
+          onChange={e => setTextInput(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rose-500 resize-none"
+          rows={6}
+          placeholder="#3b82f6&#10;#ffffff&#10;#1e293b"
+        />
+        <div className="flex flex-wrap gap-2 mt-3">
+          {colors.map(c => (
+            <div key={c} className="flex items-center gap-1.5 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-mono text-slate-600 dark:text-slate-400">
+              <span className="w-3 h-3 rounded border border-slate-300 dark:border-slate-600 shrink-0" style={{ backgroundColor: c }} />
+              {c}
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 text-xs text-slate-400">{colors.length} valid colors, {matrix.length} combinations</div>
+      </div>
+
+      {matrix.length > 0 && (
+        <>
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Compliance Matrix</h4>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-slate-200 dark:border-slate-700">
+                    <th className="text-left py-2 pr-3 text-slate-500 dark:text-slate-400 font-medium">FG / BG</th>
+                    {colors.map(c => (
+                      <th key={c} className="py-2 px-2 text-center font-medium">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="w-3 h-3 rounded border border-slate-300 dark:border-slate-600 shrink-0" style={{ backgroundColor: c }} />
+                          <span className="text-xs font-mono truncate max-w-[60px]">{c}</span>
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {colors.map(fg => (
+                    <tr key={fg} className="border-b border-slate-100 dark:border-slate-700/50">
+                      <td className="py-2 pr-3">
+                        <div className="flex items-center gap-1">
+                          <span className="w-3 h-3 rounded border border-slate-300 dark:border-slate-600 shrink-0" style={{ backgroundColor: fg }} />
+                          <span className="text-xs font-mono">{fg}</span>
+                        </div>
+                      </td>
+                      {colors.map(bg => {
+                        if (fg === bg) return <td key={bg} className="py-2 px-2 text-center text-slate-300 dark:text-slate-600">—</td>
+                        const pair = matrix.find(m => m.fg === fg && m.bg === bg)
+                        if (!pair) return <td key={bg} className="py-2 px-2 text-center">—</td>
+                        return (
+                          <td key={bg} className={`py-2 px-2 text-center font-mono ${
+                            pair.level === 'AAA' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300' :
+                            pair.level === 'AA' || pair.level === 'AA Large' ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300' :
+                            'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'
+                          }`}>
+                            {pair.ratio.toFixed(1)}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 text-center">
+              <div className="text-2xl font-bold text-slate-900 dark:text-white">{summary.total}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Total Combinations</div>
+            </div>
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 text-center">
+              <div className={`text-2xl font-bold ${summary.passRate >= 80 ? 'text-emerald-600 dark:text-emerald-400' : summary.passRate >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                {summary.passRate}%
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Pass Rate (4.5:1)</div>
+            </div>
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 text-center">
+              <div className={`text-2xl font-bold ${summary.failingCount > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                {summary.failingCount}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Failing Pairs</div>
+            </div>
+          </div>
+
+          {summary.hasIssues && (
+            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5">
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-3">Compliance Issues & Suggestions</h4>
+              <div className="space-y-2">
+                {summary.failingPairs.map((p, i) => {
+                  const [r1, g1, b1] = hexToRgbValues(p.fg)
+                  const [r2, g2, b2] = hexToRgbValues(p.bg)
+                  const darker = p.fg
+                  const lighter = p.bg
+                  return (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 text-sm">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="w-5 h-5 rounded border border-slate-300" style={{ backgroundColor: p.fg }} />
+                        <span className="text-xs font-mono text-slate-500">/</span>
+                        <span className="w-5 h-5 rounded border border-slate-300" style={{ backgroundColor: p.bg }} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-slate-700 dark:text-slate-300">
+                          <span className="font-mono">{p.fg}</span> on <span className="font-mono">{p.bg}</span>: ratio {p.ratio.toFixed(2)}:1 ({p.level})
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Suggestion: Darken foreground or lighten background to achieve at least 4.5:1 ratio.
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function WCAGExport() {
+  type ExportPair = { id: number; fg: string; bg: string; fgInput: string; bgInput: string }
+  const [pairs, setPairs] = useState<ExportPair[]>([
+    { id: 1, fg: '#1e293b', bg: '#ffffff', fgInput: '#1e293b', bgInput: '#ffffff' },
+    { id: 2, fg: '#ffffff', bg: '#3b82f6', fgInput: '#ffffff', bgInput: '#3b82f6' },
+  ])
+  const [format, setFormat] = useState<'csv' | 'json' | 'text'>('csv')
+
+  let nextId = 3
+  const addPair = useCallback(() => {
+    const id = nextId++
+    setPairs(prev => [...prev, { id, fg: '#1e293b', bg: '#ffffff', fgInput: '#1e293b', bgInput: '#ffffff' }])
+  }, [])
+
+  const removePair = useCallback((id: number) => {
+    setPairs(prev => prev.filter(p => p.id !== id))
+  }, [])
+
+  const updatePair = useCallback((id: number, field: 'fg' | 'bg' | 'fgInput' | 'bgInput', value: string) => {
+    setPairs(prev => prev.map(p => {
+      if (p.id !== id) return p
+      const next = { ...p, [field]: value }
+      if (field === 'fgInput' || field === 'bgInput') {
+        const colorField = field === 'fgInput' ? 'fg' : 'bg'
+        const hex = value.startsWith('#') ? value : `#${value}`
+        if ((value.startsWith('#') && isValidHex(value)) || isValidHex(value)) {
+          try { parseColor(hex); next[colorField] = hex } catch {}
+        }
+      }
+      return next
+    }))
+  }, [])
+
+  const data = useMemo(() => pairs.map(p => {
+    const ratio = contrastRatio(p.fg, p.bg)
+    const level = wcagLevel(ratio)
+    return {
+      foreground: p.fg,
+      background: p.bg,
+      contrastRatio: parseFloat(ratio.toFixed(2)),
+      wcagLevel: level,
+      passNormalText: ratio >= 4.5,
+      passLargeText: ratio >= 3,
+      passUIComponents: ratio >= 3,
+    }
+  }), [pairs])
+
+  const report = useMemo(() => {
+    switch (format) {
+      case 'csv': {
+        const header = 'Foreground,Background,Contrast Ratio,WCAG Level,Normal Text,Large Text,UI Components'
+        const rows = data.map(d =>
+          `${d.foreground},${d.background},${d.contrastRatio},${d.wcagLevel},${d.passNormalText ? 'PASS' : 'FAIL'},${d.passLargeText ? 'PASS' : 'FAIL'},${d.passUIComponents ? 'PASS' : 'FAIL'}`
+        )
+        return [header, ...rows].join('\n')
+      }
+      case 'json':
+        return JSON.stringify(data, null, 2)
+      case 'text': {
+        const lines = ['WCAG Contrast Report', '====================', '']
+        data.forEach((d, i) => {
+          lines.push(`Pair ${i + 1}: ${d.foreground} / ${d.background}`)
+          lines.push(`  Contrast Ratio: ${d.contrastRatio}:1`)
+          lines.push(`  WCAG Level: ${d.wcagLevel}`)
+          lines.push(`  Normal Text: ${d.passNormalText ? 'PASS' : 'FAIL'}`)
+          lines.push(`  Large Text: ${d.passLargeText ? 'PASS' : 'FAIL'}`)
+          lines.push(`  UI Components: ${d.passUIComponents ? 'PASS' : 'FAIL'}`)
+          lines.push('')
+        })
+        return lines.join('\n')
+      }
+    }
+  }, [data, format])
+
+  const copyReport = useCallback(async () => {
+    try { await navigator.clipboard.writeText(report) } catch {}
+  }, [report])
+
+  const downloadReport = useCallback(() => {
+    const ext = format === 'json' ? 'json' : format === 'csv' ? 'csv' : 'txt'
+    const mime = format === 'json' ? 'application/json' : format === 'csv' ? 'text/csv' : 'text/plain'
+    const blob = new Blob([report], { type: mime })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `wcag-report.${ext}`
+    a.click()
+    URL.revokeObjectURL(url)
+  }, [report, format])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Color Pairs</h3>
+        <Button variant="secondary" size="sm" onClick={addPair}>+ Add Pair</Button>
+      </div>
+
+      {data.map((d, i) => {
+        const p = pairs[i]
+        if (!p) return null
+        return (
+          <div key={p.id} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Pair {i + 1}</span>
+              {pairs.length > 1 && (
+                <button onClick={() => removePair(p.id)} className="text-xs text-red-500 hover:text-red-600 font-medium">Remove</button>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Foreground</label>
+                <div className="flex items-center gap-2">
+                  <div className="relative shrink-0">
+                    <input type="color" value={p.fg} onChange={e => updatePair(p.id, 'fg', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <div className="w-8 h-8 rounded-lg border-2 border-slate-200 dark:border-slate-600 shadow-sm" style={{ backgroundColor: p.fg }} />
+                  </div>
+                  <input type="text" value={p.fgInput} onChange={e => updatePair(p.id, 'fgInput', e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Background</label>
+                <div className="flex items-center gap-2">
+                  <div className="relative shrink-0">
+                    <input type="color" value={p.bg} onChange={e => updatePair(p.id, 'bg', e.target.value)} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                    <div className="w-8 h-8 rounded-lg border-2 border-slate-200 dark:border-slate-600 shadow-sm" style={{ backgroundColor: p.bg }} />
+                  </div>
+                  <input type="text" value={p.bgInput} onChange={e => updatePair(p.id, 'bgInput', e.target.value)} className="flex-1 px-2 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs font-mono focus:outline-none focus:ring-2 focus:ring-rose-500" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })}
+
+      <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-5 space-y-4">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Export Format:</span>
+          {(['csv', 'json', 'text'] as const).map(f => (
+            <button
+              key={f}
+              onClick={() => setFormat(f)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-all ${
+                format === f
+                  ? 'bg-rose-500 text-white border-rose-500'
+                  : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-rose-300'
+              }`}
+            >
+              {f.toUpperCase()}
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Preview</label>
+          <pre className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-mono overflow-auto max-h-48 whitespace-pre">{report}</pre>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={copyReport}>Copy</Button>
+          <Button variant="primary" size="sm" onClick={downloadReport}>Download</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function AccessibilityTool({ title, description, toolType }: AccessibilityToolProps) {
+  const pathname = usePathname()
+  const toolId = pathname?.replace(/^\//, '')?.replace(/\/$/, '') || ''
+  const content = useMemo(() => getToolContent(toolId), [toolId])
+
   const renderContent = () => {
     const simulationTypes = ['color-blindness-simulator', 'protanopia', 'deuteranopia', 'tritanopia', 'monochrome', 'color-vision']
     const readabilityTypes = ['readability', 'font-recommender']
@@ -870,7 +1374,6 @@ export default function AccessibilityTool({ title, description, toolType }: Acce
     const matrixTypes = ['contrast-matrix', 'heatmap']
     const darkTypes = ['dark-mode']
     const lightTypes = ['light-mode']
-    const otherTypes = ['report-generator', 'contrast-fix', 'compliance', 'wcag-export', 'accessible-gradient']
 
     if (simulationTypes.includes(toolType)) return <ColorBlindnessSimulator />
     if (readabilityTypes.includes(toolType)) return <ReadabilityChecker />
@@ -882,17 +1385,22 @@ export default function AccessibilityTool({ title, description, toolType }: Acce
     if (matrixTypes.includes(toolType)) return <ContrastMatrix />
     if (darkTypes.includes(toolType)) return <DarkModePreview />
     if (lightTypes.includes(toolType)) return <LightModePreview />
-    if (otherTypes.includes(toolType)) return <ReadabilityChecker />
+    if (toolType === 'report-generator') return <ReportGenerator />
+    if (toolType === 'compliance') return <ComplianceChecker />
+    if (toolType === 'wcag-export') return <WCAGExport />
+    if (toolType === 'contrast-fix' || toolType === 'accessible-gradient') return <ReadabilityChecker />
     return <TextContrastChecker />
   }
 
   return (
-    <div className="animate-fade-in">
+    <ToolContent title={title} description={description} howToUse={content.howToUse} faq={content.faq} relatedTools={content.relatedTools}>
+      <div className="animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{title}</h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-7xl">{description}</p>
       </div>
       {renderContent()}
     </div>
+    </ToolContent>
   )
 }

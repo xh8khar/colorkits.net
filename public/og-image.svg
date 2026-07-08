@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f43f5e"/>
+      <stop offset="100%" stop-color="#be123c"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <g transform="translate(600,200)">
+    <circle cx="-70" cy="-60" r="30" fill="#3b82f6"/>
+    <circle cx="0" cy="-100" r="30" fill="#f59e0b"/>
+    <circle cx="70" cy="-60" r="30" fill="#10b981"/>
+    <circle cx="0" cy="-20" r="30" fill="#8b5cf6"/>
+  </g>
+  <text x="600" y="330" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="96" fill="white">ColorKits</text>
+  <text x="600" y="400" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="500" font-size="36" fill="rgba(255,255,255,0.85)">Free Online Color Tools</text>
+</svg>

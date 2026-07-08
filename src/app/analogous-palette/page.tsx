@@ -2,8 +2,17 @@ import type { Metadata } from 'next'
 import ToolPageClient from './ToolPageClient'
 
 export const metadata: Metadata = {
-  title: 'Analogous Palette - Free Online Color Tool',
-  description: 'Analogous Palette. Free online color tool for developers and designers.',
+  title: 'Analogous Palette Generator - Free Online Color Tool | ColorKits',
+  description: 'Generate stunning analogous palette color schemes instantly. Free online analogous palette for designers and developers. Create harmonious color combinations with real-time preview and export options.',
+  keywords: ['analogous palette', 'analogous palette tool', 'analogous palette online', 'analogous palette color tool'],
+  openGraph: {
+    title: 'Analogous Palette Generator - Free Online Color Tool | ColorKits',
+    description: 'Generate stunning analogous palette color schemes instantly.',
+  },
+  twitter: {
+    title: 'Analogous Palette Generator - Free Online Color Tool | ColorKits',
+    description: 'Generate stunning analogous palette color schemes instantly.',
+  },
 }
 
 export default function Page() {

@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
+import ToolContent from './ToolContent'
+import { getToolContent } from '@/lib/toolContent'
+import { usePathname } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { rgbToHexValues } from '@/lib/converters'
 
@@ -43,6 +46,7 @@ interface ImageColorToolProps {
     | 'mood-generator'
     | 'accent-color-finder'
     | 'screenshot-palette'
+    | 'website-screenshot-color-extractor'
     | 'icon-palette'
     | 'artwork-palette'
     | 'wallpaper-palette'
@@ -160,6 +164,79 @@ function getHistogram(imageData: ImageData): number[] {
   return hist.map(v => (v / max) * 100)
 }
 
+const screenshotToolTypes = ['website-screenshot', 'screenshot-palette', 'website-screenshot-color-extractor'] as const
+
+interface BrandColor {
+  name: string
+  hex: string
+  r: number
+  g: number
+  b: number
+}
+
+const BRAND_COLORS: BrandColor[] = [
+  { name: 'Google', hex: '#4285F4', r: 66, g: 133, b: 244 },
+  { name: 'Facebook / Meta', hex: '#1877F2', r: 24, g: 119, b: 242 },
+  { name: 'Instagram', hex: '#E4405F', r: 228, g: 64, b: 95 },
+  { name: 'Twitter / X', hex: '#000000', r: 0, g: 0, b: 0 },
+  { name: 'YouTube', hex: '#FF0000', r: 255, g: 0, b: 0 },
+  { name: 'LinkedIn', hex: '#0A66C2', r: 10, g: 102, b: 194 },
+  { name: 'Apple', hex: '#555555', r: 85, g: 85, b: 85 },
+  { name: 'Microsoft', hex: '#00A4EF', r: 0, g: 164, b: 239 },
+  { name: 'Amazon', hex: '#FF9900', r: 255, g: 153, b: 0 },
+  { name: 'Netflix', hex: '#E50914', r: 229, g: 9, b: 20 },
+  { name: 'Spotify', hex: '#1DB954', r: 29, g: 185, b: 84 },
+  { name: 'Slack', hex: '#4A154B', r: 74, g: 21, b: 75 },
+  { name: 'Airbnb', hex: '#FF5A5F', r: 255, g: 90, b: 95 },
+  { name: 'Stripe', hex: '#635BFF', r: 99, g: 91, b: 255 },
+  { name: 'Shopify', hex: '#96BF48', r: 150, g: 191, b: 72 },
+  { name: 'Pinterest', hex: '#E60023', r: 230, g: 0, b: 35 },
+  { name: 'Snapchat', hex: '#FFFC00', r: 255, g: 252, b: 0 },
+  { name: 'Reddit', hex: '#FF4500', r: 255, g: 69, b: 0 },
+  { name: 'TikTok', hex: '#000000', r: 0, g: 0, b: 0 },
+  { name: 'Coca-Cola', hex: '#F40000', r: 244, g: 0, b: 0 },
+  { name: "McDonald's", hex: '#FFC72C', r: 255, g: 199, b: 44 },
+  { name: 'Starbucks', hex: '#006241', r: 0, g: 98, b: 65 },
+  { name: 'Nike', hex: '#000000', r: 0, g: 0, b: 0 },
+  { name: 'Adidas', hex: '#000000', r: 0, g: 0, b: 0 },
+  { name: 'IBM', hex: '#0062FF', r: 0, g: 98, b: 255 },
+  { name: 'Intel', hex: '#0071C5', r: 0, g: 113, b: 197 },
+  { name: 'Samsung', hex: '#1428A0', r: 20, g: 40, b: 160 },
+  { name: 'Sony', hex: '#000000', r: 0, g: 0, b: 0 },
+  { name: 'HP', hex: '#0096D6', r: 0, g: 150, b: 214 },
+  { name: 'Dell', hex: '#007DB8', r: 0, g: 125, b: 184 },
+  { name: 'Target', hex: '#CC0000', r: 204, g: 0, b: 0 },
+  { name: 'Walmart', hex: '#0071CE', r: 0, g: 113, b: 206 },
+  { name: 'Best Buy', hex: '#0046BE', r: 0, g: 70, b: 190 },
+  { name: 'Adobe', hex: '#FF0000', r: 255, g: 0, b: 0 },
+  { name: 'Salesforce', hex: '#00A1E0', r: 0, g: 161, b: 224 },
+  { name: 'Uber', hex: '#000000', r: 0, g: 0, b: 0 },
+  { name: 'Lyft', hex: '#FF00BF', r: 255, g: 0, b: 191 },
+  { name: 'PayPal', hex: '#003087', r: 0, g: 48, b: 135 },
+  { name: 'Visa', hex: '#1A1F71', r: 26, g: 31, b: 113 },
+  { name: 'Mastercard', hex: '#EB001B', r: 235, g: 0, b: 27 },
+]
+
+function findBrandMatches(colors: ColorResult[]): Array<{ brandName: string; brand: BrandColor; extracted: ColorResult; similarity: number }> {
+  const matches: Array<{ brandName: string; brand: BrandColor; extracted: ColorResult; similarity: number }> = []
+  for (const c of colors) {
+    let bestBrand: BrandColor | null = null
+    let bestDist = Infinity
+    for (const b of BRAND_COLORS) {
+      const dist = rgbDistance(c.r, c.g, c.b, b.r, b.g, b.b)
+      if (dist < bestDist) {
+        bestDist = dist
+        bestBrand = b
+      }
+    }
+    if (bestBrand && bestDist < 100) {
+      const similarity = Math.max(0, Math.round((1 - bestDist / 441.67) * 100))
+      matches.push({ brandName: bestBrand.name, brand: bestBrand, extracted: c, similarity })
+    }
+  }
+  return matches.sort((a, b) => b.similarity - a.similarity)
+}
+
 export default function ImageColorTool({ title, description, toolType }: ImageColorToolProps) {
   const [image, setImage] = useState<string | null>(null)
   const [fileName, setFileName] = useState('')
@@ -173,6 +250,15 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const { addToast } = useToast()
+
+  const pathname = usePathname()
+  const toolId = pathname?.replace(/^\//, '')?.replace(/\/$/, '') || ''
+  const content = useMemo(() => getToolContent(toolId), [toolId])
+
+  const imageDataRef = useRef<ImageData | null>(null)
+  const pixelCanvasRef = useRef<HTMLCanvasElement>(null)
+  const [pixelCoords, setPixelCoords] = useState<{x: number; y: number} | null>(null)
+  const [pixelInfo, setPixelInfo] = useState<{r: number; g: number; b: number; hex: string} | null>(null)
 
   const processImage = useCallback((file: File) => {
     setLoading(true)
@@ -197,6 +283,7 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
         ctx.drawImage(img, 0, 0, w, h)
         const imageData = ctx.getImageData(0, 0, w, h)
 
+        imageDataRef.current = imageData
         const result = extractPalette(imageData, toolType === 'average-color' ? 1 : 8)
         setColors(result.colors)
         setDominant(result.dominant)
@@ -215,6 +302,36 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
     }
     reader.readAsDataURL(file)
   }, [toolType, addToast])
+
+  useEffect(() => {
+    if (toolType !== 'pixel-analyzer' || !imageDataRef.current || !pixelCanvasRef.current) return
+    const data = imageDataRef.current
+    const zoom = 4
+    const canvas = pixelCanvasRef.current
+    canvas.width = data.width * zoom
+    canvas.height = data.height * zoom
+    const ctx = canvas.getContext('2d')!
+    const imgData = ctx.createImageData(canvas.width, canvas.height)
+    for (let y = 0; y < data.height; y++) {
+      for (let x = 0; x < data.width; x++) {
+        const si = (y * data.width + x) * 4
+        const r = data.data[si]
+        const g = data.data[si + 1]
+        const b = data.data[si + 2]
+        const a = data.data[si + 3]
+        for (let dy = 0; dy < zoom; dy++) {
+          for (let dx = 0; dx < zoom; dx++) {
+            const di = ((y * zoom + dy) * canvas.width + (x * zoom + dx)) * 4
+            imgData.data[di] = r
+            imgData.data[di + 1] = g
+            imgData.data[di + 2] = b
+            imgData.data[di + 3] = a
+          }
+        }
+      }
+    }
+    ctx.putImageData(imgData, 0, 0)
+  }, [image, toolType])
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -249,6 +366,29 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
     }
   }, [dominant, addToast])
 
+  const handlePixelHover = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = pixelCanvasRef.current
+    const data = imageDataRef.current
+    if (!canvas || !data) return
+    const rect = canvas.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const zoom = 4
+    const px = Math.floor(mx / zoom)
+    const py = Math.floor(my / zoom)
+    if (px < 0 || px >= data.width || py < 0 || py >= data.height) {
+      setPixelCoords(null)
+      setPixelInfo(null)
+      return
+    }
+    const idx = (py * data.width + px) * 4
+    const r = data.data[idx]
+    const g = data.data[idx + 1]
+    const b = data.data[idx + 2]
+    setPixelCoords({ x: px, y: py })
+    setPixelInfo({ r, g, b, hex: rgbToHexValues(r, g, b) })
+  }, [])
+
   const getResultTitle = () => {
     switch (toolType) {
       case 'dominant-color': return 'Dominant Colors'
@@ -256,6 +396,7 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
       case 'palette-extractor':
       case 'photo-palette':
       case 'screenshot-palette':
+      case 'website-screenshot-color-extractor':
       case 'icon-palette':
       case 'artwork-palette':
       case 'wallpaper-palette': return 'Extracted Palette'
@@ -288,11 +429,27 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
   )
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <ToolContent title={title} description={description} howToUse={content.howToUse} faq={content.faq} relatedTools={content.relatedTools}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{title}</h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-7xl">{description}</p>
       </div>
+
+      {(screenshotToolTypes as unknown as string[]).includes(toolType) && (
+        <div className="mb-6 p-4 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+          <div className="flex gap-3">
+            <svg className="w-5 h-5 shrink-0 mt-0.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div className="text-sm text-amber-800 dark:text-amber-200">
+              <p className="font-semibold mb-1">Cannot automatically capture website screenshots in a browser</p>
+              <p>This tool would take a screenshot of a website URL and extract colors from it, but browsers cannot do this due to cross-origin security restrictions — there is no JavaScript API to screenshot an arbitrary URL.</p>
+              <p className="mt-2"><strong>Alternative:</strong> Take a screenshot manually (Cmd+Shift+4 on Mac, or your OS screenshot tool), then upload it below.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div
         onDragOver={(e) => { e.preventDefault(); setIsDragOver(true) }}
@@ -331,9 +488,11 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
-              Drop an image here or click to browse
+              {(screenshotToolTypes as unknown as string[]).includes(toolType) ? 'Upload a screenshot image instead' : 'Drop an image here or click to browse'}
             </p>
-            <p className="text-xs text-slate-400 dark:text-slate-500">Supports JPG, PNG, GIF, WebP</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500">
+              {(screenshotToolTypes as unknown as string[]).includes(toolType) ? 'Take a screenshot and upload it — supports JPG, PNG, GIF, WebP' : 'Supports JPG, PNG, GIF, WebP'}
+            </p>
           </div>
         )}
       </div>
@@ -420,6 +579,67 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
             </div>
           )}
 
+          {toolType === 'pixel-analyzer' && image && imageDataRef.current && (
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Pixel Analyzer</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Hover over the zoomed view to inspect individual pixels</p>
+              <div className="overflow-auto max-h-96 rounded-lg border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800">
+                <canvas
+                  ref={pixelCanvasRef}
+                  className="block cursor-crosshair"
+                  onMouseMove={handlePixelHover}
+                  onMouseLeave={() => { setPixelCoords(null); setPixelInfo(null) }}
+                />
+              </div>
+              {pixelCoords && pixelInfo && (
+                <div className="mt-4 flex flex-wrap items-center gap-4 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                  <div
+                    className="w-10 h-10 rounded-lg border-2 border-slate-200 dark:border-slate-600 shrink-0"
+                    style={{ backgroundColor: pixelInfo.hex }}
+                  />
+                  <div className="space-y-0.5">
+                    <p className="font-mono font-bold text-slate-900 dark:text-white">{pixelInfo.hex}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">RGB({pixelInfo.r}, {pixelInfo.g}, {pixelInfo.b})</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Position: ({pixelCoords.x}, {pixelCoords.y})</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {toolType === 'brand-color-finder' && colors.length > 0 && (
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Brand Color Matches</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Dominant colors matched against known brand color palettes</p>
+              <div className="space-y-2">
+                {findBrandMatches(colors).map((match, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-800/50">
+                    <div
+                      className="w-8 h-8 rounded-lg border border-slate-200 dark:border-slate-600 shrink-0"
+                      style={{ backgroundColor: match.brand.hex }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{match.brandName}</p>
+                      <p className="text-xs font-mono text-slate-500">{match.brand.hex}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{match.similarity}%</p>
+                      <p className="text-[10px] text-slate-400">match</p>
+                    </div>
+                    <div
+                      className="w-6 h-6 rounded border border-slate-200 dark:border-slate-600 shrink-0"
+                      style={{ backgroundColor: match.extracted.hex }}
+                      title="Extracted color"
+                    />
+                  </div>
+                ))}
+                {findBrandMatches(colors).length === 0 && (
+                  <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-4">No close brand color matches found</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {toolType === 'gradient-from-image' && gradientColors.length >= 2 && (
             <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
               <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Generated Gradient</h3>
@@ -472,5 +692,6 @@ export default function ImageColorTool({ title, description, toolType }: ImageCo
         </div>
       )}
     </div>
+    </ToolContent>
   )
 }

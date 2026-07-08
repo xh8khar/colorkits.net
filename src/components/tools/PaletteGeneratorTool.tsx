@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import ToolContent from './ToolContent'
+import { getToolContent } from '@/lib/toolContent'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import {
@@ -267,6 +270,10 @@ export default function PaletteGeneratorTool({ title, description, paletteType }
   const [genKey, setGenKey] = useState(0)
   const needsBase = !noBaseColorTypes.has(paletteType)
 
+  const pathname = usePathname()
+  const toolId = pathname?.replace(/^\//, '')?.replace(/\/$/, '') || ''
+  const content = useMemo(() => getToolContent(toolId), [toolId])
+
   const regenerate = useCallback(() => {
     setColors(prev => {
       const hexes = generatePalette(baseColor, paletteType)
@@ -354,7 +361,8 @@ export default function PaletteGeneratorTool({ title, description, paletteType }
   const anyLocked = colors.some(c => c.locked)
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <ToolContent title={title} description={description} howToUse={content.howToUse} faq={content.faq} relatedTools={content.relatedTools}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{title}</h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-2xl">
@@ -442,5 +450,6 @@ export default function PaletteGeneratorTool({ title, description, paletteType }
         </span>
       </div>
     </div>
+    </ToolContent>
   )
 }

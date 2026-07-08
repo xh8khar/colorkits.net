@@ -2,8 +2,17 @@ import type { Metadata } from 'next'
 import ToolPageClient from './ToolPageClient'
 
 export const metadata: Metadata = {
-  title: 'Color Similarity Checker - Free Online Color Tool',
-  description: 'Measure how similar or different two colors are using Delta E perceptual difference.',
+  title: 'Color Similarity Checker - Free Online Color Tool | ColorKits',
+  description: 'Check color contrast against WCAG accessibility standards. Free online color similarity checker for web developers and designers. Ensure your designs meet WCAG 2.2 AA and AAA requirements with detailed pass/fail analysis.',
+  keywords: ['color similarity checker', 'color similarity checker tool', 'web accessibility contrast', 'wcag 2.2 compliance', 'accessibility checker'],
+  openGraph: {
+    title: 'Color Similarity Checker - Free Online Color Tool | ColorKits',
+    description: 'Check color contrast against WCAG accessibility standards.',
+  },
+  twitter: {
+    title: 'Color Similarity Checker - Free Online Color Tool | ColorKits',
+    description: 'Check color contrast against WCAG accessibility standards.',
+  },
 }
 
 export default function Page() {

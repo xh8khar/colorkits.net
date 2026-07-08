@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import ToolContent from './ToolContent'
+import { getToolContent } from '@/lib/toolContent'
+import { usePathname } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import {
@@ -409,122 +412,623 @@ function ColorSimilarity() {
   )
 }
 
-// ---- Exporter ----
-type ExportFormat = 'css-variables' | 'scss' | 'json' | 'tailwind' | 'android-xml' | 'swift-assets' | 'flutter-theme' | 'react-theme' | 'design-tokens'
-
-function PaletteExporter() {
-  const [paletteInput, setPaletteInput] = useState('#ff0044\n#00ff44\n#0044ff\n#ffaa00\n#ff00aa')
-  const [format, setFormat] = useState<ExportFormat>('css-variables')
-  const [output, setOutput] = useState('')
+// ---- Design Token Generator ----
+function DesignTokenGenerator() {
+  const [hex, setHex] = useState('#ff0044')
+  const [tokenName, setTokenName] = useState('primary')
+  const [tokenType, setTokenType] = useState('color')
   const { addToast } = useToast()
+  const output = useMemo(() => JSON.stringify({ [tokenName]: { $value: hex, $type: tokenType } }, null, 2), [hex, tokenName, tokenType])
 
-  const exportPalette = useCallback(() => {
-    const colors = paletteInput
-      .split('\n')
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Token Name</label>
+          <input type="text" value={tokenName} onChange={(e) => setTokenName(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Token Type</label>
+          <select value={tokenType} onChange={(e) => setTokenType(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30">
+            <option value="color">Color</option>
+            <option value="spacing">Spacing</option>
+            <option value="typography">Typography</option>
+            <option value="shadow">Shadow</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Value</label>
+          <div className="flex items-center gap-2">
+            <input type="color" value={hex} onChange={(e) => setHex(e.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={hex} onChange={(e) => { const v = e.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(v)) setHex(v) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+          </div>
+        </div>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
 
-    if (colors.length === 0) {
-      addToast('Please enter at least one color', 'error')
-      return
-    }
+// ---- Flutter Theme Generator ----
+function FlutterThemeGenerator() {
+  const [colors, setColors] = useState({ primary: '#ff0044', secondary: '#0044ff', surface: '#ffffff', background: '#f8fafc', error: '#ef4444' })
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    const name = (k: string) => k.charAt(0).toUpperCase() + k.slice(1)
+    const entries = Object.entries(colors).map(([k, v]) => `    ${k}: Color(0xFF${v.replace('#', '')}),`).join('\n')
+    return `import 'package:flutter/material.dart';\n\nclass AppTheme {\n  static ThemeData get lightTheme => ThemeData(\n    useMaterial3: true,\n    colorScheme: ColorScheme.light(\n${entries}\n    ),\n  );\n\n  static ThemeData get darkTheme => ThemeData(\n    useMaterial3: true,\n    colorScheme: ColorScheme.dark(\n${entries}\n    ),\n  );\n}`
+  }, [colors])
 
-    let result = ''
-    const paletteName = 'palette'
+  const update = (key: string, val: string) => setColors(prev => ({ ...prev, [key]: val }))
 
-    switch (format) {
-      case 'css-variables':
-        result = colors.map((c, i) => `  --${paletteName}-${i + 1}: ${c};`).join('\n')
-        result = `:root {\n${result}\n}`
-        break
-      case 'scss':
-        result = colors.map((c, i) => `$${paletteName}-${i + 1}: ${c};`).join('\n')
-        break
-      case 'json':
-        result = JSON.stringify(colors, null, 2)
-        break
-      case 'tailwind':
-        result = `  ${paletteName}: {\n${colors.map((c, i) => `    ${(i + 1) * 100}: '${c}',`).join('\n')}\n  },`
-        break
-      case 'android-xml':
-        result = `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n${colors.map((c, i) => `    <color name="${paletteName}_${i + 1}">${c}</color>`).join('\n')}\n</resources>`
-        break
-      case 'swift-assets':
-        result = colors.map((c, i) => `  static let color${i + 1} = Color(hex: "${c}")`).join('\n')
-        break
-      case 'flutter-theme':
-        result = `final ${paletteName} = [\n${colors.map(c => `  Color(0xFF${c.replace('#', '')}),`).join('\n')}\n];`
-        break
-      case 'react-theme':
-        result = `const theme = {\n  colors: {\n${colors.map((c, i) => `    ${paletteName}${i + 1}: '${c}',`).join('\n')}\n  },\n}`
-        break
-      case 'design-tokens':
-        result = `{\n${colors.map((c, i) => `  "${paletteName}-${i + 1}": { "value": "${c}" }`).join(',\n')}\n}`
-        break
-    }
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {Object.entries(colors).map(([key, hex]) => (
+          <div key={key} className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 capitalize w-24">{key}</span>
+            <input type="color" value={hex} onChange={(e) => update(key, e.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={hex} onChange={(e) => { const v = e.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(v)) update(key, v) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+          </div>
+        ))}
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
 
-    setOutput(result)
-    addToast('Export generated', 'success')
-  }, [paletteInput, format, addToast])
+// ---- React Theme Generator ----
+function ReactThemeGenerator() {
+  const [themeName, setThemeName] = useState('app')
+  const [entries, setEntries] = useState([{ name: 'primary', hex: '#ff0044' }, { name: 'secondary', hex: '#0044ff' }, { name: 'accent', hex: '#00ff44' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    const ctx = themeName.charAt(0).toUpperCase() + themeName.slice(1)
+    const colors = entries.map(e => `    ${e.name}: '${e.hex}'`).join(',\n')
+    return `import { createContext, useContext, ReactNode } from 'react';\n\nconst ${ctx}ThemeContext = createContext({\n${colors}\n});\n\nexport function ${ctx}ThemeProvider({ children }: { children: ReactNode }) {\n  const theme = { ${entries.map(e => `${e.name}: '${e.hex}'`).join(', ')} };\n  return <${ctx}ThemeContext.Provider value={theme}>{children}</${ctx}ThemeContext.Provider>;\n}\n\nexport function use${ctx}Theme() {\n  return useContext(${ctx}ThemeContext);\n}`
+  }, [themeName, entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
 
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">
-          Palette Colors (one per line)
-        </label>
-        <textarea
-          value={paletteInput}
-          onChange={(e) => setPaletteInput(e.target.value)}
-          rows={5}
-          className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white resize-y focus:outline-none focus:ring-2 focus:ring-rose-500/30"
-          spellCheck={false}
-        />
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Theme Name</label>
+        <input type="text" value={themeName} onChange={(e) => setThemeName(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
       </div>
-
-      <div className="flex items-center gap-3">
-        <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase">Format</label>
-        <select
-          value={format}
-          onChange={(e) => setFormat(e.target.value as ExportFormat)}
-          className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30"
-        >
-          <option value="css-variables">CSS Variables</option>
-          <option value="scss">SCSS Variables</option>
-          <option value="json">JSON</option>
-          <option value="tailwind">Tailwind Config</option>
-          <option value="android-xml">Android XML</option>
-          <option value="swift-assets">Swift Assets</option>
-          <option value="flutter-theme">Flutter Theme</option>
-          <option value="react-theme">React Theme</option>
-          <option value="design-tokens">Design Tokens</option>
-        </select>
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Color
+        </button>
       </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
 
-      <Button onClick={exportPalette} className="w-full">Generate Export</Button>
+// ---- Tailwind Theme Generator ----
+function TailwindThemeGenerator() {
+  const [entries, setEntries] = useState([{ name: 'primary', hex: '#f43f5e' }, { name: 'secondary', hex: '#6366f1' }, { name: 'accent', hex: '#10b981' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    const colors = entries.map(e => `    ${e.name}: {\n      DEFAULT: '${e.hex}',\n    }`).join(',\n')
+    return `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n${colors}\n      },\n    },\n  },\n}`
+  }, [entries])
 
-      {output && (
-        <div className="relative">
-          <textarea
-            value={output}
-            readOnly
-            rows={8}
-            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white resize-y focus:outline-none"
-            spellCheck={false}
-          />
-          <button
-            onClick={() => {
-              navigator.clipboard.writeText(output)
-              addToast('Copied to clipboard', 'success')
-            }}
-            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
-          </button>
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Color Family
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---- CSS Variables Generator ----
+function CssVariablesGenerator() {
+  const [prefix, setPrefix] = useState('color')
+  const [entries, setEntries] = useState([{ name: 'primary', hex: '#ff0044' }, { name: 'secondary', hex: '#0044ff' }, { name: 'accent', hex: '#00ff44' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    const vars = entries.map(e => `  --${prefix}-${e.name}: ${e.hex};`).join('\n')
+    return `:root {\n${vars}\n}`
+  }, [prefix, entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Variable Prefix</label>
+        <input type="text" value={prefix} onChange={(e) => setPrefix(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+      </div>
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Variable
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---- SCSS Variables Generator ----
+function ScssVariablesGenerator() {
+  const [prefix, setPrefix] = useState('color')
+  const [entries, setEntries] = useState([{ name: 'primary', hex: '#ff0044' }, { name: 'secondary', hex: '#0044ff' }, { name: 'accent', hex: '#00ff44' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    return entries.map(e => `$${prefix}-${e.name}: ${e.hex};`).join('\n')
+  }, [prefix, entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Variable Prefix</label>
+        <input type="text" value={prefix} onChange={(e) => setPrefix(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+      </div>
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Variable
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---- Android XML Generator ----
+function AndroidXmlGenerator() {
+  const [prefix, setPrefix] = useState('app')
+  const [entries, setEntries] = useState([{ name: 'primary', hex: '#ff0044' }, { name: 'secondary', hex: '#0044ff' }, { name: 'background', hex: '#ffffff' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    const resources = entries.map(e => `    <color name="${prefix}_${e.name}">${e.hex}</color>`).join('\n')
+    return `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n${resources}\n</resources>`
+  }, [prefix, entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Resource Prefix</label>
+        <input type="text" value={prefix} onChange={(e) => setPrefix(e.target.value)}
+          className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+      </div>
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Resource
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---- Swift Assets Generator ----
+function SwiftAssetsGenerator() {
+  const [entries, setEntries] = useState([{ name: 'primary', hex: '#ff0044' }, { name: 'secondary', hex: '#0044ff' }, { name: 'accent', hex: '#00ff44' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    const colors = entries.map(e => `    static let ${e.name} = Color(hex: 0x${e.hex.replace('#', '')})`).join('\n')
+    return `import SwiftUI\n\nextension Color {\n${colors}\n}`
+  }, [entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Color
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---- Figma Export ----
+function FigmaExport() {
+  const [entries, setEntries] = useState([{ name: 'Primary', hex: '#ff0044' }, { name: 'Secondary', hex: '#0044ff' }, { name: 'Accent', hex: '#00ff44' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    const colors = entries.map(e => `    { "name": "${e.name}", "color": { "r": ${(parseInt(e.hex.slice(1,3), 16) / 255).toFixed(4)}, "g": ${(parseInt(e.hex.slice(3,5), 16) / 255).toFixed(4)}, "b": ${(parseInt(e.hex.slice(5,7), 16) / 255).toFixed(4)}, "a": 1 } }`)
+    return `{\n  "colors": [\n${colors.join(',\n')}\n  ]\n}`
+  }, [entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `Color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Color
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---- ASE Export ----
+function AseExport() {
+  const [entries, setEntries] = useState([{ name: 'Primary', hex: '#ff0044' }, { name: 'Secondary', hex: '#0044ff' }, { name: 'Accent', hex: '#00ff44' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    return entries.map(e => {
+      const r = (parseInt(e.hex.slice(1,3), 16) / 255).toFixed(4)
+      const g = (parseInt(e.hex.slice(3,5), 16) / 255).toFixed(4)
+      const b = (parseInt(e.hex.slice(5,7), 16) / 255).toFixed(4)
+      return `ASEF version 1.0\n# ${e.name} (${e.hex})\n# RGB: ${r} ${g} ${b}\n---`
+    }).join('\n\n')
+  }, [entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `Color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Color
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ---- Palette Importer ----
+function PaletteImporter() {
+  const [input, setInput] = useState('#ff0044\n#0044ff\n#00ff44')
+  const [parsed, setParsed] = useState<string[]>([])
+  const { addToast } = useToast()
+
+  const parseInput = useCallback(() => {
+    const colors = input.split('\n').map(s => s.trim()).filter(s => s.length > 0)
+    const hexColors = colors.filter(c => /^#[0-9a-fA-F]{6}$/.test(c))
+    if (hexColors.length === 0) {
+      addToast('No valid hex colors found', 'error')
+      return
+    }
+    setParsed(hexColors)
+    addToast(`Parsed ${hexColors.length} colors`, 'success')
+  }, [input, addToast])
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Paste Colors (hex, CSS, or JSON)</label>
+        <textarea value={input} onChange={(e) => setInput(e.target.value)} rows={5}
+          className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white resize-y focus:outline-none focus:ring-2 focus:ring-rose-500/30" spellCheck={false} />
+      </div>
+      <Button onClick={parseInput} className="w-full">Parse Colors</Button>
+      {parsed.length > 0 && (
+        <div>
+          <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-1.5">Parsed Colors ({parsed.length})</label>
+          <div className="flex flex-wrap gap-2">
+            {parsed.map((c, i) => (
+              <button key={i} onClick={() => { navigator.clipboard.writeText(c); addToast('Copied', 'success') }}
+                className="group relative">
+                <div className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-600 cursor-pointer hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
+                <span className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[8px] font-mono text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 whitespace-nowrap">{c}</span>
+              </button>
+            ))}
+          </div>
+          <div className="relative mt-3">
+            <textarea value={parsed.join('\n')} readOnly rows={3}
+              className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white resize-y focus:outline-none" spellCheck={false} />
+            <button onClick={() => { navigator.clipboard.writeText(parsed.join('\n')); addToast('Copied', 'success') }}
+              className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+            </button>
+          </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ---- JSON Palette Generator (fallback for json-palette / exporter) ----
+function JsonPaletteGenerator() {
+  const [entries, setEntries] = useState([{ name: 'primary', hex: '#ff0044' }, { name: 'secondary', hex: '#0044ff' }, { name: 'accent', hex: '#00ff44' }])
+  const { addToast } = useToast()
+  const output = useMemo(() => {
+    if (entries.length === 0) return ''
+    const obj: Record<string, string> = {}
+    entries.forEach(e => { obj[e.name] = e.hex })
+    return JSON.stringify(obj, null, 2)
+  }, [entries])
+
+  const updateEntry = (i: number, field: 'name' | 'hex', val: string) => {
+    setEntries(prev => prev.map((e, idx) => idx === i ? { ...e, [field]: val } : e))
+  }
+
+  const addEntry = () => setEntries(prev => [...prev, { name: `color${prev.length + 1}`, hex: '#888888' }])
+  const removeEntry = (i: number) => { if (entries.length > 1) setEntries(prev => prev.filter((_, idx) => idx !== i)) }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        {entries.map((e, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input type="text" value={e.name} onChange={(v) => updateEntry(i, 'name', v.target.value)}
+              className="w-28 px-2 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-xs font-mono text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            <input type="color" value={e.hex} onChange={(v) => updateEntry(i, 'hex', v.target.value)}
+              className="w-10 h-10 rounded-lg border border-slate-200 dark:border-slate-700 cursor-pointer shrink-0" />
+            <input type="text" value={e.hex} onChange={(v) => { const val = v.target.value; if (/^#[0-9a-fA-F]{0,6}$/.test(val)) updateEntry(i, 'hex', val) }}
+              className="flex-1 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-mono text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-rose-500/30" />
+            {entries.length > 1 && (
+              <button onClick={() => removeEntry(i)} className="p-1 text-slate-400 hover:text-red-500 transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={addEntry} className="flex items-center gap-1 px-3 py-2 text-xs font-medium rounded-lg border border-dashed border-slate-300 dark:border-slate-600 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 transition-colors">
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+          Add Color
+        </button>
+      </div>
+      <div className="relative">
+        <pre className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 font-mono text-sm text-slate-900 dark:text-white overflow-x-auto whitespace-pre">{output}</pre>
+        <button onClick={() => { navigator.clipboard.writeText(output); addToast('Copied', 'success') }}
+          className="absolute top-2 right-2 p-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+      </div>
     </div>
   )
 }
@@ -642,6 +1146,10 @@ function ColorPlayground() {
 export default function UtilityTool({ title, description, utilityType }: UtilityToolProps) {
   const { addToast } = useToast()
 
+  const pathname = usePathname()
+  const toolId = pathname?.replace(/^\//, '')?.replace(/\/$/, '') || ''
+  const content = useMemo(() => getToolContent(toolId), [toolId])
+
   const renderContent = () => {
     switch (utilityType) {
       case 'color-name':
@@ -652,20 +1160,31 @@ export default function UtilityTool({ title, description, utilityType }: Utility
       case 'duplicate':
       case 'delta-e':
         return <ColorSimilarity />
-      case 'exporter':
-      case 'css-variables':
-      case 'scss':
-      case 'json-palette':
-      case 'tailwind-theme':
-      case 'android-xml':
-      case 'swift-assets':
-      case 'flutter-theme':
-      case 'react-theme':
-      case 'figma':
-      case 'ase':
-      case 'importer':
       case 'design-tokens':
-        return <PaletteExporter />
+        return <DesignTokenGenerator />
+      case 'flutter-theme':
+        return <FlutterThemeGenerator />
+      case 'react-theme':
+        return <ReactThemeGenerator />
+      case 'tailwind-theme':
+        return <TailwindThemeGenerator />
+      case 'css-variables':
+        return <CssVariablesGenerator />
+      case 'scss':
+        return <ScssVariablesGenerator />
+      case 'android-xml':
+        return <AndroidXmlGenerator />
+      case 'swift-assets':
+        return <SwiftAssetsGenerator />
+      case 'figma':
+        return <FigmaExport />
+      case 'ase':
+        return <AseExport />
+      case 'importer':
+        return <PaletteImporter />
+      case 'json-palette':
+      case 'exporter':
+        return <JsonPaletteGenerator />
       case 'color-wheel':
         return <ColorWheel />
       case 'playground':
@@ -682,19 +1201,19 @@ export default function UtilityTool({ title, description, utilityType }: Utility
       case 'similarity':
       case 'duplicate':
       case 'delta-e': return 'Compare two colors using Delta E (CIE76) color difference'
-      case 'exporter':
-      case 'css-variables': return 'Export your palette as CSS custom properties'
-      case 'scss': return 'Export your palette as SCSS variables'
-      case 'json-palette': return 'Export your palette as JSON'
-      case 'tailwind-theme': return 'Export your palette as Tailwind config'
-      case 'android-xml': return 'Export your palette as Android XML resources'
-      case 'swift-assets': return 'Export your palette as Swift Color assets'
-      case 'flutter-theme': return 'Export your palette as Flutter Theme colors'
-      case 'react-theme': return 'Export your palette as React Theme provider'
-      case 'figma': return 'Export your palette in Figma-compatible format'
-      case 'ase': return 'Export your palette as ASE (Adobe Swatch Exchange)'
-      case 'importer': return 'Import palettes from various formats'
-      case 'design-tokens': return 'Export your palette as design tokens'
+      case 'design-tokens': return 'Generate W3C Design Tokens format from your colors'
+      case 'flutter-theme': return 'Generate Dart ThemeData code for Flutter Material Design'
+      case 'react-theme': return 'Generate React Context + Provider + hook for theme colors'
+      case 'tailwind-theme': return 'Generate tailwind.config.js theme extension'
+      case 'css-variables': return 'Generate CSS custom properties in :root block'
+      case 'scss': return 'Generate SCSS variable declarations'
+      case 'android-xml': return 'Generate Android color resources XML'
+      case 'swift-assets': return 'Generate SwiftUI Color extension for app assets'
+      case 'figma': return 'Export colors in Figma-compatible JSON format'
+      case 'ase': return 'Generate Adobe Swatch Exchange (ASE) color descriptions'
+      case 'importer': return 'Parse hex colors from pasted text or existing palettes'
+      case 'json-palette':
+      case 'exporter': return 'Export your palette as structured JSON'
       case 'color-wheel': return 'Click on the wheel to explore color relationships'
       case 'playground': return 'Experiment with multiple colors in real-time'
       default: return ''
@@ -702,7 +1221,8 @@ export default function UtilityTool({ title, description, utilityType }: Utility
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <ToolContent title={title} description={description} howToUse={content.howToUse} faq={content.faq} relatedTools={content.relatedTools}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{title}</h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-7xl">{description}</p>
@@ -716,6 +1236,7 @@ export default function UtilityTool({ title, description, utilityType }: Utility
         {renderContent()}
       </div>
     </div>
+    </ToolContent>
   )
 }
 

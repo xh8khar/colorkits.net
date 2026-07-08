@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useCallback, useMemo } from 'react'
+import ToolContent from './ToolContent'
+import { getToolContent } from '@/lib/toolContent'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { contrastRatio, wcagLevel, luminance, isValidHex, colorBlindSimulate, hexToRgbValues, rgbToHexValues, parseColor } from '@/lib/converters'
 
@@ -104,8 +107,13 @@ export default function ContrastCheckerTool({ title, description, checkerType }:
   const showAPCA = checkerType === 'apca'
   const showWCAG = checkerType === 'wcag'
 
+  const pathname = usePathname()
+  const toolId = pathname?.replace(/^\//, '')?.replace(/\/$/, '') || ''
+  const content = useMemo(() => getToolContent(toolId), [toolId])
+
   return (
-    <div className="animate-fade-in">
+    <ToolContent title={title} description={description} howToUse={content.howToUse} faq={content.faq} relatedTools={content.relatedTools}>
+      <div className="animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{title}</h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-7xl">{description}</p>
@@ -275,5 +283,6 @@ export default function ContrastCheckerTool({ title, description, checkerType }:
         </div>
       </div>
     </div>
+    </ToolContent>
   )
 }

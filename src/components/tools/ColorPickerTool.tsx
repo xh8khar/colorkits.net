@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import ToolContent from './ToolContent'
+import { getToolContent } from '@/lib/toolContent'
+import { usePathname } from 'next/navigation'
 import { useToast } from '@/components/ui/Toast'
 import { Button } from '@/components/ui/Button'
 import {
@@ -167,6 +170,10 @@ export default function ColorPickerTool({
 
   const isAlpha = showAlphaProp || mode === 'rgba' || mode === 'hsla' || mode === 'alpha' || mode === 'transparent'
   const showAlphaControl = isAlpha
+
+  const pathname = usePathname()
+  const toolId = pathname?.replace(/^\//, '')?.replace(/\/$/, '') || ''
+  const content = useMemo(() => getToolContent(toolId), [toolId])
 
   const panelRef = useRef<HTMLDivElement>(null)
   const hueRef = useRef<HTMLDivElement>(null)
@@ -403,7 +410,8 @@ export default function ColorPickerTool({
   const alphaGradientBg = `linear-gradient(to right, transparent, ${hex})`
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+    <ToolContent title={title} description={description} howToUse={content.howToUse} faq={content.faq} relatedTools={content.relatedTools}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">{title}</h1>
         <p className="text-slate-600 dark:text-slate-400 max-w-7xl">{description}</p>
@@ -874,5 +882,6 @@ export default function ColorPickerTool({
         </div>
       </div>
     </div>
+    </ToolContent>
   )
 }
