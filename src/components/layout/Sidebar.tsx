@@ -125,11 +125,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       >
         <div className="flex items-center justify-between h-14 px-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
           <Link href="/" onClick={onClose} className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white">
-            <span className="text-rose-500">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" />
-              </svg>
-            </span>
+            <div className="flex -space-x-1">
+              <span className="w-3.5 h-3.5 rounded-full bg-rose-500" />
+              <span className="w-3.5 h-3.5 rounded-full bg-amber-500" />
+              <span className="w-3.5 h-3.5 rounded-full bg-emerald-500" />
+              <span className="w-3.5 h-3.5 rounded-full bg-blue-500" />
+              <span className="w-3.5 h-3.5 rounded-full bg-purple-500" />
+            </div>
             ColorKits
           </Link>
           <button
