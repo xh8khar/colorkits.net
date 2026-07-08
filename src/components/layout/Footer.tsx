@@ -43,20 +43,9 @@ export default function Footer() {
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
               Fast, free &amp; privacy-friendly color tools for developers. All processing happens in your browser.
             </p>
-            <div className="flex -space-x-1 mb-3">
-              <span className="w-3 h-3 rounded-full bg-rose-500" />
-              <span className="w-3 h-3 rounded-full bg-amber-500" />
-              <span className="w-3 h-3 rounded-full bg-emerald-500" />
-              <span className="w-3 h-3 rounded-full bg-blue-500" />
-              <span className="w-3 h-3 rounded-full bg-purple-500" />
-            </div>
+            <img src="/favicon.svg" alt="ColorKits" className="w-8 h-8 mb-3" />
             <p className="text-xs text-slate-500 dark:text-slate-500 mb-2">
               &copy; {new Date().getFullYear()} ColorKits. MIT License.
-            </p>
-            <p className="text-xs">
-              <a href="https://www.jsonkits.net" target="_blank" rel="noopener noreferrer" className="text-slate-500 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400 transition-colors underline underline-offset-2 decoration-dotted">
-                Also try JSONKits — free JSON tools
-              </a>
             </p>
           </div>
         </div>
