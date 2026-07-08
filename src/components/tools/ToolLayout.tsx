@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { useToast } from '@/components/ui/Toast'
 import InputPanel from './InputPanel'
 import OutputPanel from './OutputPanel'
+import ContentSections from './ContentSections'
 
 import { SITE_URL } from '@/lib/site'
 const MAX_HISTORY = 20
@@ -183,6 +184,8 @@ export default function ToolLayout({
       </div>
 
       {children}
+
+      <ContentSections />
     </div>
   )
 }
