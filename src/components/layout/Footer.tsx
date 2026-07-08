@@ -43,7 +43,6 @@ export default function Footer() {
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
               Fast, free &amp; privacy-friendly color tools for developers. All processing happens in your browser.
             </p>
-            <img src="/favicon.svg" alt="ColorKits" className="w-8 h-8 mb-3" />
             <p className="text-xs text-slate-500 dark:text-slate-500 mb-2">
               &copy; {new Date().getFullYear()} ColorKits. MIT License.
             </p>
