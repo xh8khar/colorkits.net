@@ -84,18 +84,47 @@ export default function ToolLayout({
   }, [input, isReversed, convertFn, onReverse, addToast])
 
   const dynamicPreview = useMemo((): string | undefined => {
-    const tryParse = (s: string): string | null => {
+    const toHex = (s: string): string | null => {
       const t = s.trim()
       if (/^#[0-9a-fA-F]{3,8}$/.test(t)) return t
-      const rgb = t.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/)
-      if (rgb) {
-        const [r, g, b] = [parseInt(rgb[1]), parseInt(rgb[2]), parseInt(rgb[3])]
-        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+      let m: RegExpMatchArray | null
+      m = t.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+      if (m) {
+        return `#${[parseInt(m[1]), parseInt(m[2]), parseInt(m[3])].map(v => v.toString(16).padStart(2, '0')).join('')}`
+      }
+      m = t.match(/^hsla?\(([\d.]+),\s*([\d.]+)%,\s*([\d.]+)%/)
+      if (m) {
+        let h = parseFloat(m[1]), s = parseFloat(m[2]) / 100, l = parseFloat(m[3]) / 100
+        const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m2 = l - c / 2
+        let r = 0, g = 0, b_ = 0
+        if (h < 60) { r = c; g = x } else if (h < 120) { r = x; g = c } else if (h < 180) { g = c; b_ = x } else if (h < 240) { g = x; b_ = c } else if (h < 300) { r = x; b_ = c } else { r = c; b_ = x }
+        return `#${[r, g, b_].map(v => Math.round((v + m2) * 255).toString(16).padStart(2, '0')).join('')}`
+      }
+      m = t.match(/^hsva?\(([\d.]+),\s*([\d.]+)%,\s*([\d.]+)%/)
+      if (m) {
+        let h = parseFloat(m[1]), s = parseFloat(m[2]) / 100, v = parseFloat(m[3]) / 100
+        const c = v * s, x = c * (1 - Math.abs((h / 60) % 2 - 1)), m2 = v - c
+        let r = 0, g = 0, b_ = 0
+        if (h < 60) { r = c; g = x } else if (h < 120) { r = x; g = c } else if (h < 180) { g = c; b_ = x } else if (h < 240) { g = x; b_ = c } else if (h < 300) { r = x; b_ = c } else { r = c; b_ = x }
+        return `#${[r, g, b_].map(v => Math.round((v + m2) * 255).toString(16).padStart(2, '0')).join('')}`
+      }
+      m = t.match(/^hwba?\(([\d.]+),\s*([\d.]+)%,\s*([\d.]+)%/)
+      if (m) {
+        let h = parseFloat(m[1]), w = parseFloat(m[2]) / 100, b_ = parseFloat(m[3]) / 100
+        const ratio = 1 - b_, x = ratio === 0 ? 0 : w / ratio
+        let r = 0, g = 0, bb = 0
+        if (ratio === 0) { r = 1 - w; g = 1 - w; bb = 1 - w } else {
+          const c = ratio, s2 = x === 1 ? 0 : 1 - x, m2 = 1 - ratio
+          const x2 = c * (1 - Math.abs((h / 60) % 2 - 1))
+          if (h < 60) { r = c; g = x2 } else if (h < 120) { r = x2; g = c } else if (h < 180) { g = c; bb = x2 } else if (h < 240) { g = x2; bb = c } else if (h < 300) { r = x2; bb = c } else { r = c; bb = x2 }
+          r = r + m2; g = g + m2; bb = bb + m2
+        }
+        return `#${[r, g, bb].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('')}`
       }
       return null
     }
-    if (output) { const c = tryParse(output); if (c) return c }
-    if (input) { const c = tryParse(input); if (c) return c }
+    if (output) { const c = toHex(output); if (c) return c }
+    if (input) { const c = toHex(input); if (c) return c }
     return colorPreview
   }, [input, output, colorPreview])
 

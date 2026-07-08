@@ -39,7 +39,24 @@ export default function OutputPanel({ label, value, placeholder = '', error, col
           </div>
         )}
       </div>
-      <div className="relative flex-1 min-h-[200px]">
+      {colorPreview && value && (
+        <div className="relative w-full h-20 flex items-center justify-center border-b border-slate-200 dark:border-slate-700" style={{ backgroundColor: colorPreview }}>
+          {(() => {
+            const hex = colorPreview.startsWith('#') ? colorPreview : '#' + colorPreview
+            const r = parseInt(hex.slice(1,3), 16)
+            const g = parseInt(hex.slice(3,5), 16)
+            const b = parseInt(hex.slice(5,7), 16)
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+            const textColor = luminance > 0.5 ? '#1e293b' : '#f8fafc'
+            return (
+              <span className="font-mono font-bold text-lg tracking-wider" style={{ color: textColor }}>
+                {colorPreview}
+              </span>
+            )
+          })()}
+        </div>
+      )}
+      <div className="relative flex-1 min-h-[140px]">
         {!value && placeholder && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="text-center">
@@ -53,7 +70,7 @@ export default function OutputPanel({ label, value, placeholder = '', error, col
         <textarea
           value={value}
           readOnly
-          className="w-full min-h-[200px] p-4 font-mono text-sm bg-transparent text-slate-900 dark:text-white resize-none focus:outline-none"
+          className="w-full min-h-[140px] p-4 font-mono text-sm bg-transparent text-slate-900 dark:text-white resize-none focus:outline-none"
           spellCheck={false}
         />
       </div>
